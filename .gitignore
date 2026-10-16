@@ -1,0 +1,13 @@
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins*
+.idea/
+*.iml
+android/local.properties
+*.jks
+*.keystore
+*.mobileprovision
+*.p12
+.DS_Store
