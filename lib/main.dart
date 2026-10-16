@@ -844,7 +844,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
         DropdownButtonFormField<String>(key:ValueKey('provider-$provider'),initialValue:['OpenAI','NVIDIA','Custom'].contains(provider)?provider:'OpenAI',decoration:InputDecoration(labelText:t('provider')),items:['OpenAI','NVIDIA','Custom'].map((e)=>DropdownMenuItem(value:e,child:Text(e))).toList(),onChanged:(v)=>setState(()=>provider=v??'OpenAI')),
         TextField(controller:api,obscureText:true,decoration:InputDecoration(labelText:t('key'))),
         TextField(controller:model,decoration:InputDecoration(labelText:t('model'))),
-        TextField(controller:url,decoration:InputDecoration(labelText:t('custom'))),
+        if(provider=='Custom') TextField(controller:url,decoration:InputDecoration(labelText:t('custom'))),
         DropdownButtonFormField<String>(key:ValueKey('language-$lang'),initialValue:const ['es','en','fr','de','bn'].contains(lang)?lang:'es',decoration:InputDecoration(labelText:t('language')),items:const [DropdownMenuItem(value:'es',child:Text('Español')),DropdownMenuItem(value:'en',child:Text('English')),DropdownMenuItem(value:'fr',child:Text('Français')),DropdownMenuItem(value:'de',child:Text('Deutsch')),DropdownMenuItem(value:'bn',child:Text('বাংলা'))],onChanged:(v)=>setState(()=>lang=v??'es')),
         DropdownButtonFormField<String>(key:ValueKey('theme-$theme'),initialValue:theme,decoration:InputDecoration(labelText:t('theme')),items:[DropdownMenuItem(value:'light',child:Text(t('light'))),DropdownMenuItem(value:'dark',child:Text(t('dark')))],onChanged:(v)=>setState(()=>theme=v??'light')),
         const SizedBox(height:12),FilledButton(onPressed:submit,child:Text(t('save')))
@@ -1115,30 +1115,30 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
               IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: muted)),
             ]),
             SizedBox(
-              height: min(146.0, max(110.0, MediaQuery.sizeOf(context).height * 0.19)),
+              height: (MediaQuery.sizeOf(context).height * 0.11).clamp(60.0, 112.0),
               child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(width: double.infinity, height: 58, child: SingleChildScrollView(
+                SizedBox(width: double.infinity, height: (MediaQuery.sizeOf(context).height * 0.055).clamp(34.0, 58.0), child: SingleChildScrollView(
                   reverse: true,
                   scrollDirection: Axis.horizontal,
                   child: Align(alignment: Alignment.centerRight, child: Text(
                     expression.isEmpty ? '0' : expression,
                     maxLines: 1,
-                    style: TextStyle(fontSize: 34, color: foreground, fontWeight: FontWeight.w400),
+                    style: TextStyle(fontSize: (MediaQuery.sizeOf(context).height * 0.048).clamp(23.0, 34.0), color: foreground, fontWeight: FontWeight.w400),
                   )),
                 )),
                 const SizedBox(height: 4),
                 Text(preview, textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 23, color: muted)),
+                  style: TextStyle(fontSize: (MediaQuery.sizeOf(context).height * 0.032).clamp(16.0, 23.0), color: muted)),
                 const SizedBox(height: 12),
               ]),
             ),
             LayoutBuilder(builder: (context, constraints) {
               final gap = constraints.maxWidth < 320 ? 5.0 : 8.0;
               final availableHeight = MediaQuery.sizeOf(context).height -
-                  MediaQuery.paddingOf(context).vertical - 255;
+                  MediaQuery.paddingOf(context).vertical - 205;
               final widthSize = (constraints.maxWidth - 3 * gap) / 4;
               final heightSize = (availableHeight - 4 * gap) / 5;
-              final buttonSize = min(widthSize, max(32.0, heightSize));
+              final buttonSize = min(widthSize, max(28.0, heightSize));
               final iconSize = (buttonSize * 0.39).clamp(16.0, 28.0);
               final textSize = (buttonSize * 0.43).clamp(17.0, 32.0);
               return Column(children: [

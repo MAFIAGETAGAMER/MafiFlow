@@ -16,3 +16,6 @@ No borres los archivos de datos existentes. Realiza una exportación JSON antes 
 
 ## Validación
 El código fuente no se ha compilado aquí en Windows; GitHub Actions comprobará el resultado.
+
+
+Fix 1.5.3: Windows icon embedded in Runner.rc; window title MafiFlow; responsive calculator display; custom URL shown only for Custom provider.
