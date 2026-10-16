@@ -96,7 +96,7 @@ String percentChange(double current, double previous) {
 String stampNow() => DateTime.now().toIso8601String().replaceFirst('T',' ').substring(0,19);
 double number(dynamic n) => n is num ? n.toDouble() : double.tryParse('$n') ?? 0;
 String activeCurrency='USD';
-String money(num v) => '${{'USD':'\$','CAD':'CA\$','EUR':'€','GBP':'£','BDT':'৳'}[activeCurrency]??'\$'}${v.toStringAsFixed(2)}';
+String money(num v) => '${{'USD':'\$','CAD':'CA\$','EUR':'€','GBP':'£','BDT':'৳','CUP':'CUP '}[activeCurrency]??'\$'}${v.toStringAsFixed(2)}';
 List<Map<String,dynamic>> records(dynamic v) => v is List ? v.whereType<Map>().map((x)=>Map<String,dynamic>.from(x)).toList() : [];
 
 class MafiFlowApp extends StatefulWidget { const MafiFlowApp({super.key}); @override State<MafiFlowApp> createState()=>_MafiFlowAppState(); }
@@ -840,7 +840,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
         TextField(controller:monthlySavings,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:t('monthlySavings'))),
         Text(t('monthlySavingsHint')),
         // Opening balance is set only in the onboarding wizard. Do not edit it here.
-        DropdownButtonFormField<String>(key:ValueKey('currency-$currency'),initialValue:currency,decoration:InputDecoration(labelText:t('currency')),items:['USD','CAD','EUR','GBP','BDT'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD')),
+        DropdownButtonFormField<String>(key:ValueKey('currency-$currency'),initialValue:currency,decoration:InputDecoration(labelText:t('currency')),items:['USD','CAD','EUR','GBP','BDT','CUP'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD')),
         DropdownButtonFormField<String>(key:ValueKey('provider-$provider'),initialValue:['OpenAI','NVIDIA','Custom'].contains(provider)?provider:'OpenAI',decoration:InputDecoration(labelText:t('provider')),items:['OpenAI','NVIDIA','Custom'].map((e)=>DropdownMenuItem(value:e,child:Text(e))).toList(),onChanged:(v)=>setState(()=>provider=v??'OpenAI')),
         TextField(controller:api,obscureText:true,decoration:InputDecoration(labelText:t('key'))),
         TextField(controller:model,decoration:InputDecoration(labelText:t('model'))),
@@ -924,7 +924,7 @@ class _WelcomeWizardState extends State<WelcomeWizard> {
     widget.onComplete({'language':language,'currency':currency,'monthly_income':parse(income.text)??0,'income_frequency':incomeFrequency,'income_start_date':payday.toIso8601String().substring(0,10),'opening_balance':parse(opening.text)??0,'savings_goal':parse(goal.text)??0,'monthly_savings':parse(monthlySavings.text)??0,'monthly_payments':bills});
   }
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('MafiFlow')),body:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:540),child:ListView(padding:const EdgeInsets.all(24),children:[LinearProgressIndicator(value:(step+1)/4),const SizedBox(height:28),Text(word('¡Bienvenido a MafiFlow!','Welcome to MafiFlow!','Bienvenue sur MafiFlow !','Willkommen bei MafiFlow!','MafiFlow-তে স্বাগতম!'),style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:22),
-    if(step==0)...[Text(word('Elige idioma y moneda','Choose language and currency','Choisissez langue et devise','Sprache und Währung wählen','ভাষা ও মুদ্রা নির্বাচন করুন')),DropdownButtonFormField<String>(initialValue:language,items:const [DropdownMenuItem(value:'es',child:Text('Español')),DropdownMenuItem(value:'en',child:Text('English')),DropdownMenuItem(value:'fr',child:Text('Français')),DropdownMenuItem(value:'de',child:Text('Deutsch')),DropdownMenuItem(value:'bn',child:Text('বাংলা'))],onChanged:(v)=>setState(()=>language=v??'es')),DropdownButtonFormField<String>(initialValue:currency,items:['USD','CAD','EUR','GBP','BDT'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD'))],
+    if(step==0)...[Text(word('Elige idioma y moneda','Choose language and currency','Choisissez langue et devise','Sprache und Währung wählen','ভাষা ও মুদ্রা নির্বাচন করুন')),DropdownButtonFormField<String>(initialValue:language,items:const [DropdownMenuItem(value:'es',child:Text('Español')),DropdownMenuItem(value:'en',child:Text('English')),DropdownMenuItem(value:'fr',child:Text('Français')),DropdownMenuItem(value:'de',child:Text('Deutsch')),DropdownMenuItem(value:'bn',child:Text('বাংলা'))],onChanged:(v)=>setState(()=>language=v??'es')),DropdownButtonFormField<String>(initialValue:currency,items:['USD','CAD','EUR','GBP','BDT','CUP'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD'))],
     if(step==1)...[Text(word('Configura tus finanzas iniciales','Set up your starting finances','Configurez vos finances','Finanzen einrichten','প্রাথমিক অর্থ সেট করুন')),TextField(controller:income,onTap:()=>selectInitialZero(income),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Cantidad que recibes por pago','Amount per payday','Montant par paie','Betrag pro Zahlung','প্রতি বেতনের পরিমাণ'))),DropdownButtonFormField<String>(isExpanded:true,initialValue:incomeFrequency,decoration:InputDecoration(labelText:word('¿Cada cuánto cobras?','How often are you paid?','À quelle fréquence êtes-vous payé ?','Wie oft wirst du bezahlt?','কত ঘন ঘন বেতন পান?')),items:[DropdownMenuItem(value:'daily',child:Text(word('Diariamente','Daily','Chaque jour','Täglich','প্রতিদিন'))),DropdownMenuItem(value:'weekly',child:Text(word('Semanalmente','Weekly','Chaque semaine','Wöchentlich','প্রতি সপ্তাহে'))),DropdownMenuItem(value:'biweekly',child:Text(word('Cada 2 semanas','Every 2 weeks','Toutes les 2 semaines','Alle 2 Wochen','প্রতি ২ সপ্তাহে'))),DropdownMenuItem(value:'monthly',child:Text(word('Mensualmente','Monthly','Chaque mois','Monatlich','প্রতি মাসে'))),DropdownMenuItem(value:'two_months',child:Text(word('Cada 2 meses','Every 2 months','Tous les 2 mois','Alle 2 Monate','প্রতি ২ মাসে'))),DropdownMenuItem(value:'three_months',child:Text(word('Cada 3 meses','Every 3 months','Tous les 3 mois','Alle 3 Monate','প্রতি ৩ মাসে')))],onChanged:(v)=>setState(()=>incomeFrequency=v??'monthly')),const SizedBox(height:8),ListTile(contentPadding:EdgeInsets.zero,title:Text(word('Fecha del próximo cobro','Next payday','Date du premier paiement','Erster Zahltag','প্রথম বেতনের তারিখ')),subtitle:Text('${payday.year}-${payday.month.toString().padLeft(2,'0')}-${payday.day.toString().padLeft(2,'0')}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final chosen=await showDatePicker(context:context,initialDate:payday,firstDate:DateTime(2020),lastDate:DateTime(2100));if(chosen!=null)setState(()=>payday=chosen);}),TextField(controller:opening,onTap:()=>selectInitialZero(opening),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Saldo disponible ahora (no se suma al salario)','Available balance now (not added to salary)','Solde actuel (pas un revenu)','Aktueller Kontostand (kein Einkommen)','বর্তমান ব্যালেন্স')))],
     if(step==2)...[TextField(controller:monthlySavings,onTap:()=>selectInitialZero(monthlySavings),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuánto quieres ahorrar al mes?','How much to save monthly?','Combien épargner par mois ?','Monatlicher Sparbetrag','মাসিক সঞ্চয়'))),TextField(controller:goal,onTap:()=>selectInitialZero(goal),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuál es tu objetivo total de ahorro?','Total savings target','Objectif total d’épargne','Gesamtsparziel','মোট সঞ্চয়ের লক্ষ্য'))),const SizedBox(height:12),Text(word('Mensualmente este dinero se descontará automáticamente del dinero disponible hasta llegar a tu objetivo.','Each month this amount will automatically be deducted from available money until you reach your goal.','Chaque mois, ce montant sera déduit de votre solde disponible jusqu’à votre objectif.','Jeden Monat wird dieser Betrag vom verfügbaren Geld abgezogen, bis das Ziel erreicht ist.','লক্ষ্য পূরণ না হওয়া পর্যন্ত প্রতি মাসে উপলব্ধ অর্থ থেকে এই পরিমাণ বাদ যাবে।'))],
     if(step==3)...[Text(word('Agrega tus gastos fijos (opcional)','Add recurring expenses (optional)','Ajoutez les dépenses récurrentes','Wiederkehrende Ausgaben','নিয়মিত খরচ যোগ করুন')),TextField(controller:name,decoration:InputDecoration(labelText:word('Nombre del gasto','Expense name','Nom de la dépense','Ausgabenname','খরচের নাম'))),TextField(controller:payment,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Cantidad por pago','Amount per payment','Montant par paiement','Betrag pro Zahlung','প্রতি পেমেন্টের পরিমাণ'))),DropdownButtonFormField<String>(isExpanded:true,key:ValueKey('wizard-payment-$paymentFrequency'),initialValue:paymentFrequency,decoration:InputDecoration(labelText:word('¿Cada cuánto se repite este pago?','How often does this payment repeat?','À quelle fréquence ce paiement se répète-t-il ?','Wie oft wird diese Zahlung wiederholt?','এই পেমেন্ট কত ঘন ঘন হবে?')),items:[DropdownMenuItem(value:'daily',child:Text(word('Diariamente','Daily','Chaque jour','Täglich','প্রতিদিন'))),DropdownMenuItem(value:'weekly',child:Text(word('Semanalmente','Weekly','Chaque semaine','Wöchentlich','প্রতি সপ্তাহে'))),DropdownMenuItem(value:'biweekly',child:Text(word('Cada 2 semanas','Every 2 weeks','Toutes les 2 semaines','Alle 2 Wochen','প্রতি ২ সপ্তাহে'))),DropdownMenuItem(value:'monthly',child:Text(word('Mensualmente','Monthly','Chaque mois','Monatlich','প্রতি মাসে'))),DropdownMenuItem(value:'two_months',child:Text(word('Cada 2 meses','Every 2 months','Tous les 2 mois','Alle 2 Monate','প্রতি ২ মাসে'))),DropdownMenuItem(value:'three_months',child:Text(word('Cada 3 meses','Every 3 months','Tous les 3 mois','Alle 3 Monate','প্রতি ৩ মাসে')))],onChanged:(v)=>setState(()=>paymentFrequency=v??'monthly')),
@@ -1106,38 +1106,46 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 410),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+        child: SingleChildScrollView(
+          child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
               Expanded(child: Text(widget.title, style: TextStyle(color: muted, fontSize: 15))),
               IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: muted)),
             ]),
             SizedBox(
-              height: 146,
+              height: min(146.0, max(110.0, MediaQuery.sizeOf(context).height * 0.19)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(width: double.infinity, height: 75, child: SingleChildScrollView(
+                SizedBox(width: double.infinity, height: 58, child: SingleChildScrollView(
                   reverse: true,
                   scrollDirection: Axis.horizontal,
                   child: Align(alignment: Alignment.centerRight, child: Text(
                     expression.isEmpty ? '0' : expression,
                     maxLines: 1,
-                    style: TextStyle(fontSize: 39, color: foreground, fontWeight: FontWeight.w400),
+                    style: TextStyle(fontSize: 34, color: foreground, fontWeight: FontWeight.w400),
                   )),
                 )),
                 const SizedBox(height: 4),
                 Text(preview, textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 27, color: muted)),
+                  style: TextStyle(fontSize: 23, color: muted)),
                 const SizedBox(height: 12),
               ]),
             ),
             LayoutBuilder(builder: (context, constraints) {
-              final buttonSize = (constraints.maxWidth - 3 * 10) / 4;
+              final gap = constraints.maxWidth < 320 ? 5.0 : 8.0;
+              final availableHeight = MediaQuery.sizeOf(context).height -
+                  MediaQuery.paddingOf(context).vertical - 255;
+              final widthSize = (constraints.maxWidth - 3 * gap) / 4;
+              final heightSize = (availableHeight - 4 * gap) / 5;
+              final buttonSize = min(widthSize, max(32.0, heightSize));
+              final iconSize = (buttonSize * 0.39).clamp(16.0, 28.0);
+              final textSize = (buttonSize * 0.43).clamp(17.0, 32.0);
               return Column(children: [
                 for (final row in rows) ...[
-                  Row(children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     for (var i = 0; i < row.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 10),
+                      if (i > 0) SizedBox(width: gap),
                       SizedBox(width: buttonSize, height: buttonSize,
                         child: Material(
                           color: row[i] == '=' ? accent : (i == 3 ? operation : normal),
@@ -1145,10 +1153,10 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(onTap: () => press(row[i]),
                             child: Center(child: row[i] == '⌫'
-                              ? Icon(Icons.backspace_outlined, color: danger, size: 28)
+                              ? Icon(Icons.backspace_outlined, color: danger, size: iconSize)
                               : Text(row[i], style: TextStyle(
                                   color: row[i] == 'C' ? danger : row[i] == '=' ? Colors.white : foreground,
-                                  fontSize: row[i] == '()' ? 24 : 32,
+                                  fontSize: row[i] == '()' ? textSize * 0.8 : textSize,
                                   fontWeight: FontWeight.w400,
                                 )),
                             ),
@@ -1157,11 +1165,12 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                       ),
                     ],
                   ]),
-                  if (row != rows.last) const SizedBox(height: 10),
+                  if (row != rows.last) SizedBox(height: gap),
                 ],
               ]);
             }),
           ]),
+        ),
         ),
       ),
     );

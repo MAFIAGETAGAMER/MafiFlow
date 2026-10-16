@@ -1,20 +1,18 @@
-# MafiFlow Windows 1.5.1 Beta
+# MafiFlow PC 1.5.2
 
-Esta versión reutiliza la interfaz Flutter de MafiFlow Mobile: navegación inferior, temas, idiomas, calculadora, calendarios, pagos recurrentes, estadísticas y centro de ayuda.
+Flutter comparte interfaz con Android. El ejecutable de Windows se genera como `MafiFlow.exe` y utiliza el icono oficial proporcionado.
 
-## Compilación en GitHub
+## Compilación
+Sube todos los archivos, incluida `.github/workflows/windows.yml`, y ejecuta GitHub Actions. Descarga la carpeta completa del artefacto. No ejecutes el EXE sin las DLL y la carpeta `data`.
 
-Sube los archivos del proyecto a un repositorio GitHub y ejecuta **Actions > Build MafiFlow Windows EXE > Run workflow**. El artefacto `MafiFlow-Windows-1.5.1` contiene el directorio Windows Release completo. **No se debe distribuir únicamente el archivo .exe**: también necesita las DLL y los datos de la carpeta.
+## Cambios
+- Moneda CUP (peso cubano), mostrada como `CUP` sin conversión de divisas.
+- Calculadora adaptable a ventanas pequeñas.
+- Logo oficial en interfaz y EXE.
+- Nombre del ejecutable `MafiFlow.exe`.
 
-## Transferir datos de Android a Windows
+## Datos
+No borres los archivos de datos existentes. Realiza una exportación JSON antes de actualizar.
 
-1. En Android, entra en Ajustes > Exportar JSON. La copia se coloca en el portapapeles, sin la clave API.
-2. Pega ese contenido en un archivo de texto y guárdalo como `MafiFlow-backup.json`, o transfiere el texto directamente al PC.
-3. En Windows, Ajustes > Importar JSON > **Abrir archivo JSON** (o pega el texto). Confirma la sustitución de los datos locales.
-4. En Windows, Ajustes > Exportar JSON copia el JSON al portapapeles y también permite guardarlo como archivo `.json`.
-
-**Advertencia:** Importar reemplaza los datos actuales de Windows. Exporta una copia antes de importar. La clave API no se incluye en las exportaciones. Esta función es para copias JSON generadas por MafiFlow Mobile, no para el `datos.json` histórico de la aplicación Tkinter.
-
-## Límites de verificación
-
-No se ha ejecutado una compilación Windows real en este entorno. GitHub Actions incluye `flutter analyze` y `flutter build windows --release` para comprobar el proyecto. El centro de ayuda abre el cliente de correo; el envío directo requiere un servicio externo.
+## Validación
+El código fuente no se ha compilado aquí en Windows; GitHub Actions comprobará el resultado.
