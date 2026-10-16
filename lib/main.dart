@@ -1100,81 +1100,106 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
       ['1', '2', '3', '+'],
       ['()', '0', '.', '='],
     ];
+
+    final viewport = MediaQuery.sizeOf(context);
+    // The dialog must fit inside the real viewport, including on small phones
+    // and on Windows when the window is resized.
+    final dialogWidth = min(410.0, max(0.0, viewport.width - 32.0));
+    final dialogHeight = max(0.0, viewport.height - 48.0);
+    const padding = 16.0;
+    const gap = 8.0;
+    final availableKeypadWidth = max(0.0, dialogWidth - padding * 2);
+    final widthLimited = max(0.0, (availableKeypadWidth - gap * 3) / 4);
+    // Account for the title, expression, live result, vertical padding and gaps.
+    // If the window becomes extremely short, scrolling is available instead.
+    final heightLimited = max(0.0, (dialogHeight - 180.0 - gap * 4) / 5);
+    final buttonSize = min(78.0, min(widthLimited, max(28.0, heightLimited)));
+    final iconSize = (buttonSize * 0.32).clamp(12.0, 27.0);
+    final textSize = (buttonSize * 0.43).clamp(12.0, 33.0);
+
+    // The whole display is bounded. FittedBox scales the *text itself*, not
+    // only its surrounding rectangle, when the expression becomes long.
+    Widget adaptiveNumber(String value, {required double fontSize,
+      required double height, required Color color}) {
+      return SizedBox(
+        width: double.infinity,
+        height: height,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: fontSize, color: color),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Dialog(
       backgroundColor: background,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 410),
-        child: SingleChildScrollView(
-          child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Row(children: [
-              Expanded(child: Text(widget.title, style: TextStyle(color: muted, fontSize: 15))),
-              IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: muted)),
-            ]),
-            SizedBox(
-              height: (MediaQuery.sizeOf(context).height * 0.11).clamp(60.0, 112.0),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(width: double.infinity, height: (MediaQuery.sizeOf(context).height * 0.055).clamp(34.0, 58.0), child: SingleChildScrollView(
-                  reverse: true,
-                  scrollDirection: Axis.horizontal,
-                  child: Align(alignment: Alignment.centerRight, child: Text(
-                    expression.isEmpty ? '0' : expression,
-                    maxLines: 1,
-                    style: TextStyle(fontSize: (MediaQuery.sizeOf(context).height * 0.048).clamp(23.0, 34.0), color: foreground, fontWeight: FontWeight.w400),
-                  )),
-                )),
-                const SizedBox(height: 4),
-                Text(preview, textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: (MediaQuery.sizeOf(context).height * 0.032).clamp(16.0, 23.0), color: muted)),
-                const SizedBox(height: 12),
+      child: SizedBox(
+        width: dialogWidth,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: dialogHeight),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [
+                Expanded(child: Text(widget.title,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: muted, fontSize: 20))),
+                IconButton(onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: muted)),
               ]),
-            ),
-            LayoutBuilder(builder: (context, constraints) {
-              final gap = constraints.maxWidth < 320 ? 5.0 : 8.0;
-              final availableHeight = MediaQuery.sizeOf(context).height -
-                  MediaQuery.paddingOf(context).vertical - 205;
-              final widthSize = (constraints.maxWidth - 3 * gap) / 4;
-              final heightSize = (availableHeight - 4 * gap) / 5;
-              final buttonSize = min(widthSize, max(28.0, heightSize));
-              final iconSize = (buttonSize * 0.39).clamp(16.0, 28.0);
-              final textSize = (buttonSize * 0.43).clamp(17.0, 32.0);
-              return Column(children: [
-                for (final row in rows) ...[
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    for (var i = 0; i < row.length; i++) ...[
-                      if (i > 0) SizedBox(width: gap),
-                      SizedBox(width: buttonSize, height: buttonSize,
-                        child: Material(
-                          color: row[i] == '=' ? accent : (i == 3 ? operation : normal),
-                          shape: const CircleBorder(),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(onTap: () => press(row[i]),
-                            child: Center(child: row[i] == '⌫'
-                              ? Icon(Icons.backspace_outlined, color: danger, size: iconSize)
-                              : Text(row[i], style: TextStyle(
-                                  color: row[i] == 'C' ? danger : row[i] == '=' ? Colors.white : foreground,
-                                  fontSize: row[i] == '()' ? textSize * 0.8 : textSize,
-                                  fontWeight: FontWeight.w400,
-                                )),
-                            ),
+              const SizedBox(height: 8),
+              adaptiveNumber(expression.isEmpty ? '0' : expression,
+                fontSize: 38, height: 46, color: foreground),
+              adaptiveNumber(preview,
+                fontSize: 21, height: 27, color: muted),
+              const SizedBox(height: 12),
+              for (var r = 0; r < rows.length; r++) ...[
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  for (var i = 0; i < rows[r].length; i++) ...[
+                    if (i > 0) const SizedBox(width: gap),
+                    SizedBox(
+                      width: buttonSize, height: buttonSize,
+                      child: Material(
+                        color: rows[r][i] == '=' ? accent : (i == 3 ? operation : normal),
+                        shape: const CircleBorder(),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => press(rows[r][i]),
+                          child: Center(child: rows[r][i] == '⌫'
+                            ? Icon(Icons.backspace_outlined, color: danger, size: iconSize)
+                            : Text(rows[r][i], style: TextStyle(
+                                color: rows[r][i] == 'C' ? danger
+                                  : rows[r][i] == '=' ? Colors.white : foreground,
+                                fontSize: rows[r][i] == '()' ? textSize * 0.8 : textSize,
+                                fontWeight: FontWeight.w400,
+                              )),
                           ),
                         ),
                       ),
-                    ],
-                  ]),
-                  if (row != rows.last) SizedBox(height: gap),
-                ],
-              ]);
-            }),
-          ]),
-        ),
+                    ),
+                  ],
+                ]),
+                if (r != rows.length - 1) const SizedBox(height: gap),
+              ],
+            ]),
+          ),
         ),
       ),
     );
   }
+
 }
 
 // Help & feedback never reads financial records or API credentials.
