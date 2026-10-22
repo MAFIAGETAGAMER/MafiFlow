@@ -1,15 +1,15 @@
-# MafiFlow para Microsoft Store — Windows 1.5.6
+# MafiFlow para Microsoft Store — Windows 1.5.7
 
 Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, pruebas de la sección de ayuda y un generador MSIX. **No incluye un `.msix` compilado**: hay que compilar en Windows y utilizar los identificadores oficiales de Partner Center.
 
 ## Correcciones incluidas
 
-- Las flechas de **Reportar un error** y **Sugerir una función** muestran chevrón abajo al estar cerradas y chevrón arriba al estar abiertas.
-- Al pulsar una opción abierta, se cierra el formulario. Si lo vuelves a abrir, el texto escrito sigue allí.
-- Cuando pasas de un reporte a una sugerencia, cada formulario conserva su propio borrador, sin mezclar los mensajes.
+- Los encabezados **Reportar un error** y **Sugerir una función** son `ExpansionTile`, exactamente igual que las FAQ: flecha abajo al cerrar, flecha arriba al abrir y la misma animación y colores según el tema.
+- Cada sección abre su formulario **inmediatamente bajo su propio encabezado**. Pueden abrirse ambas a la vez; cerrar una no cierra la otra. El texto escrito se conserva al cerrar y reabrir.
+- Cada formulario tiene controladores de texto propios: el reporte y la sugerencia nunca comparten ni borran sus borradores al cambiar de sección.
 - El mensaje de correo identifica la plataforma: `MafiFlow (Windows)` en Windows, en lugar del antiguo `MafiFlow Mobile 1.0.6 Beta 17`.
 - El icono original de Mafistudio se mantiene en la app y en las imágenes del paquete MSIX.
-- Versión Flutter: `1.5.6+22`. Versión del paquete de Microsoft Store: `1.5.6.0`.
+- Versión Flutter: `1.5.7+23`. Versión del paquete de Microsoft Store: `1.5.7.0`.
 
 ## Opción recomendada: generar EXE y MSIX con GitHub Actions
 
@@ -21,8 +21,8 @@ Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, prue
 3. En el repositorio, entra a **Actions → Compilar MafiFlow Windows y Microsoft Store MSIX → Run workflow**.
 4. Escribe los tres valores anteriores, selecciona la rama `main` y ejecuta el workflow.
 5. Al terminar satisfactoriamente, en la ejecución de GitHub Actions aparecen **dos artefactos**:
-   - `MafiFlow-Windows-1.5.6-FIX`: ejecutable Windows corregido con todas las DLL y recursos. Extrae **toda la carpeta**, no solo el `.exe`.
-   - `MafiFlow-Microsoft-Store-MSIX-1.5.6`: archivo `.msix` **sin firmar**, destinado a **Partner Center → Paquetes**. Microsoft lo firma tras la certificación.
+   - `MafiFlow-Windows-1.5.7-FIX`: ejecutable Windows corregido con todas las DLL y recursos. Extrae **toda la carpeta**, no solo el `.exe`.
+   - `MafiFlow-Microsoft-Store-MSIX-1.5.7`: archivo `.msix` **sin firmar**, destinado a **Partner Center → Paquetes**. Microsoft lo firma tras la certificación.
 6. Sube el `.msix` resultante a la presentación ya creada en Microsoft Store.
 
 Si se ejecuta el workflow sin los tres campos, se genera el EXE corregido pero **no** el MSIX. Si falla una prueba, no se genera el artefacto posterior; consulta el log y corrige el error antes de publicar.
@@ -40,15 +40,15 @@ Instala Flutter, Visual Studio con **Desarrollo para escritorio con C++** y Wind
 
 Este script genera el proyecto Windows, configura el branding, instala dependencias, analiza el código, ejecuta las pruebas, compila la versión Release y llama al generador MSIX.
 
-Si todo pasa, el archivo generado estará en `dist\MafiFlow_Store_x64_1.5.6.0.msix`. Si fallan pruebas o compilación, **no debes subir un paquete anterior**.
+Si todo pasa, el archivo generado estará en `dist\MafiFlow_Store_x64_1.5.7.0.msix`. Si fallan pruebas o compilación, **no debes subir un paquete anterior**.
 
 También puedes hacerlo por pasos con `flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .`, `tools/Branding-Windows.ps1`, `flutter pub get`, `flutter test`, `flutter build windows --release` y `tools/Crear-MSIX.ps1`.
 
 ## Pruebas antes de enviar a Microsoft
 
 - Abrir la versión corregida y comprobar que el icono y título son MafiFlow.
-- Ir a **Centro de ayuda** → **Reportar un error**. Verificar que la flecha cambie; escribir algo, cerrarlo y reabrirlo para comprobar que el texto se conserve.
-- Abrir **Sugerir una función** y comprobar que tiene su propio borrador y que ambos se conservan al alternar.
+- Ir a **Centro de ayuda** → **Reportar un error**. Verificar que la flecha esté abajo inicialmente, arriba al abrir y abajo al cerrar; escribir algo, cerrarlo y reabrirlo para comprobar que el texto se conserve.
+- Abrir **Sugerir una función** y comprobar que aparece justo debajo de su encabezado, con su propio campo vacío; abrir ambas y cerrar cada una por separado. Repetir en tema claro/oscuro, idiomas y una ventana estrecha.
 - Probar el botón de correo electrónico si Windows tiene configurado un cliente predeterminado.
 - Revisar ingresos, gastos, pagos recurrentes, estadísticas, idiomas y modo oscuro.
 - Probar exportar/importar una copia de seguridad y confirmar que el guardado de datos financieros persiste después de cerrar/abrir la aplicación.

@@ -1,13 +1,23 @@
-REVISIÓN DE FLECHAS Y BORRADORES — 21 octubre 2026
+REVISIÓN DEL PROYECTO MAFIFLOW 1.5.7
 
-- Base: MafiFlow_1.5.6_CORREGIDO_MicrosoftStore.zip.
-- Reportar un error y Sugerir una función: expand_more al cerrar y expand_less al abrir.
-- Borradores independientes; se conserva también la ubicación del error.
-- Pruebas Flutter actualizadas en español e inglés: estado inicial, apertura,
-  cierre, reapertura y alternancia con conservación de ambos borradores.
-- Workflow MSIX, scripts de empaquetado, iconos y versión conservados.
-- No hay SDK Flutter/Dart disponible en este entorno. No se ejecutaron
-  flutter test ni flutter analyze ni se compiló un ejecutable o MSIX.
-- GitHub Actions conserva el paso de análisis y ejecución de estas pruebas
-  antes de compilar Windows y generar el MSIX con la identidad de Partner Center.
-- Se comprobó integridad del ZIP y conservación binaria de archivos no modificados.
+VERIFICADO EN ESTE ENTORNO:
+- Se analizó el código fuente lib/main.dart y se aplicó un cambio localizado en MafiHelpCenter.
+- Se comparó el código modificado con el original: las funciones financieras quedaron sin modificar.
+- Se incluyeron 4 pruebas Flutter para independencia de secciones, ubicación de formularios, conservación de ambos borradores, FAQ, idiomas y temas. Las pruebas están escritas pero NO se ejecutaron en este entorno.
+- Se validó estructuralmente el YAML de GitHub Actions y la existencia de todos los scripts y recursos.
+- Se comprobó el contenido de la plantilla XML del manifiesto MSIX; su validación por MakeAppx requiere Windows SDK.
+- Se verificaron dimensiones de iconos requeridos y que el paquete fuente no contiene el exe viejo.
+
+NO SE PUDO VERIFICAR AQUÍ:
+- Compilación de Flutter para Windows: no se dispone del SDK Flutter ni del compilador Windows.
+- Ejecución de flutter analyze/test: se realizará en GitHub Actions o en un PC con Flutter.
+- Ejecución de MakeAppx.exe para generar el MSIX: necesita Windows SDK.
+- Que la Microsoft Store apruebe el envío, ni que el paquete se instale sin incidencias.
+
+ANTES DE PUBLICAR:
+- Generar nuevo ejecutable y MSIX con GitHub Actions, no usar versiones anteriores.
+- Introducir la identidad REAL de la aplicación de Partner Center.
+- Probar manualmente la sección de ayuda y las operaciones financieras.
+- Exportar un respaldo de los datos existentes si vas a instalar MSIX desde EXE.
+
+Ninguna compilación ni prueba no ejecutada debe considerarse aprobada.

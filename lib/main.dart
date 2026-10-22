@@ -1203,81 +1203,169 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
 }
 
 // Help & feedback never reads financial records or API credentials.
+// Both feedback sections deliberately use the very same ExpansionTile as FAQ:
+// the native chevron, animation, theme colors and layout stay consistent.
 class MafiHelpCenter extends StatefulWidget {
-  const MafiHelpCenter({super.key,required this.language});
+  const MafiHelpCenter({super.key, required this.language});
   final String language;
-  @override State<MafiHelpCenter> createState()=>_MafiHelpCenterState();
-}
-class _MafiHelpCenterState extends State<MafiHelpCenter> {
-  String? category;
-  final _bugDescription=TextEditingController();
-  final _ideaDescription=TextEditingController();
-  TextEditingController get description =>
-      category == 'idea' ? _ideaDescription : _bugDescription;
-  final location=TextEditingController();
-  String t(String key)=>helpLabels[widget.language]?[key]??helpLabels['en']![key]??key;
-  @override void dispose(){_bugDescription.dispose();_ideaDescription.dispose();location.dispose();super.dispose();}
 
-  // Expand/collapse the selected section, with arrows that match its state.
-  // Each form keeps its own draft across collapse and category changes.
-  void _toggleCategory(String selection) {
-    setState(() {
-      if (category == selection) {
-        category = null;
-      } else {
-        category = selection;
-      }
-    });
+  @override
+  State<MafiHelpCenter> createState() => _MafiHelpCenterState();
+}
+
+class _MafiHelpCenterState extends State<MafiHelpCenter> {
+  // Independent controllers keep both drafts even when an ExpansionTile
+  // disposes its collapsed children. Toggling either tile affects neither
+  // the other tile nor the corresponding draft.
+  final _bugDescription = TextEditingController();
+  final _bugLocation = TextEditingController();
+  final _ideaDescription = TextEditingController();
+
+  String t(String key) =>
+      helpLabels[widget.language]?[key] ?? helpLabels['en']![key] ?? key;
+
+  @override
+  void dispose() {
+    _bugDescription.dispose();
+    _bugLocation.dispose();
+    _ideaDescription.dispose();
+    super.dispose();
   }
 
-  Future<void> send() async {
-    final appPlatform = Platform.isWindows ? 'Windows' : Platform.isAndroid ? 'Android' : 'Desktop';
-    final subject = category == 'bug'
-        ? 'MafiFlow ($appPlatform) - Bug report'
-        : 'MafiFlow ($appPlatform) - Feature suggestion';
-    final body = 'MafiFlow ($appPlatform)\nLanguage: ${widget.language}\nSection: ${category == 'bug' ? location.text.trim() : 'Feature suggestion'}\n\n${description.text.trim()}\n\n(Screenshots can be attached in your email app.)';
-    final uri=Uri(scheme:'mailto',path:'mafistudio.dev@gmail.com',query:Uri(queryParameters:{'subject':subject,'body':body}).query);
+  Future<void> _send(String kind) async {
+    final isBug = kind == 'bug';
+    final platform = Platform.isWindows
+        ? 'Windows'
+        : Platform.isAndroid
+            ? 'Android'
+            : 'Desktop';
+    final message = isBug ? _bugDescription.text.trim() : _ideaDescription.text.trim();
+    final subject = isBug
+        ? 'MafiFlow ($platform) - Bug report'
+        : 'MafiFlow ($platform) - Feature suggestion';
+    final section = isBug ? _bugLocation.text.trim() : 'Feature suggestion';
+    final body = 'MafiFlow ($platform)\n'
+        'Language: ${widget.language}\n'
+        'Section: $section\n\n'
+        '$message\n\n'
+        '(Screenshots can be attached in your email app.)';
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'mafistudio.dev@gmail.com',
+      query: Uri(queryParameters: {'subject': subject, 'body': body}).query,
+    );
     try {
-      if(!await launchUrl(uri,mode:LaunchMode.externalApplication))throw StateError('Email app unavailable');
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('emailConfirm'))));
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw StateError('Email app unavailable');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t('emailConfirm'))));
+      }
     } catch (_) {
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('emailFailed'))));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t('emailFailed'))));
+      }
     }
   }
-  @override Widget build(BuildContext context){
-    final theme=Theme.of(context);
-    return Scaffold(appBar:AppBar(title:Text(t('helpCenter'))),body:ListView(padding:const EdgeInsets.all(16),children:[
-      Card(child:Column(children:[
-        ListTile(
-          key: const Key('help-report-bug'),
-          leading: const Icon(Icons.bug_report_outlined),
-          title: Text(t('reportBug')),
-          trailing: Icon(category == 'bug' ? Icons.expand_less : Icons.expand_more),
-          selected: category == 'bug',
-          onTap: () => _toggleCategory('bug'),
-        ),
-        const Divider(height:1),
-        ListTile(
-          key: const Key('help-suggest-feature'),
-          leading: const Icon(Icons.lightbulb_outline),
-          title: Text(t('suggestFeature')),
-          trailing: Icon(category == 'idea' ? Icons.expand_less : Icons.expand_more),
-          selected: category == 'idea',
-          onTap: () => _toggleCategory('idea'),
-        ),
-      ])),
-      if(category!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-        Text(category=='bug'?t('reportBug'):t('suggestFeature'),style:theme.textTheme.titleMedium),
-        const SizedBox(height:12),
-        if(category=='bug')TextField(controller:location,decoration:InputDecoration(labelText:t('whereBug'),border:const OutlineInputBorder())),
-        const SizedBox(height:12),
-        TextField(controller:description,minLines:3,maxLines:6,onChanged:(_)=>setState((){}),decoration:InputDecoration(labelText:category=='bug'?t('describeBug'):t('describeIdea'),border:const OutlineInputBorder())),
-        const SizedBox(height:12),Text(t('emailPrivacy'),style:theme.textTheme.bodySmall),
-        const SizedBox(height:12),FilledButton.icon(onPressed:description.text.trim().isEmpty?null:send,icon:const Icon(Icons.mail_outline),label:Text(t('sendEmail'))),
-      ]))),
-      const SizedBox(height:12),Text(t('faq'),style:theme.textTheme.titleLarge),
-      for(final q in [['faqDataQ','faqDataA'],['faqPaymentsQ','faqPaymentsA'],['faqAiQ','faqAiA'],['faqStatsQ','faqStatsA']])
-        Card(child:ExpansionTile(title:Text(t(q[0])),children:[Padding(padding:const EdgeInsets.fromLTRB(16,0,16,16),child:Align(alignment:Alignment.centerLeft,child:Text(t(q[1]))))])),
-    ]));
+
+  // Contents live INSIDE the expansion tile, immediately below their title.
+  // This is the same structure as each FAQ answer, not a shared card below
+  // the two headings (which previously caused the misplaced form bug).
+  Widget _feedbackFields({required bool isBug}) {
+    final description = isBug ? _bugDescription : _ideaDescription;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isBug) ...[
+            TextField(
+              key: const Key('help-bug-location'),
+              controller: _bugLocation,
+              decoration: InputDecoration(
+                labelText: t('whereBug'),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(
+            key: Key(isBug ? 'help-bug-description' : 'help-idea-description'),
+            controller: description,
+            minLines: 3,
+            maxLines: 6,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: t(isBug ? 'describeBug' : 'describeIdea'),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(t('emailPrivacy'), style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: Key(isBug ? 'help-send-bug' : 'help-send-idea'),
+            onPressed: description.text.trim().isEmpty
+                ? null
+                : () => _send(isBug ? 'bug' : 'idea'),
+            icon: const Icon(Icons.mail_outline),
+            label: Text(t('sendEmail')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(t('helpCenter'))),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: ExpansionTile(
+              key: const PageStorageKey<String>('help-report-bug'),
+              leading: const Icon(Icons.bug_report_outlined),
+              title: Text(t('reportBug')),
+              children: [_feedbackFields(isBug: true)],
+            ),
+          ),
+          Card(
+            child: ExpansionTile(
+              key: const PageStorageKey<String>('help-suggest-feature'),
+              leading: const Icon(Icons.lightbulb_outline),
+              title: Text(t('suggestFeature')),
+              children: [_feedbackFields(isBug: false)],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(t('faq'), style: theme.textTheme.titleLarge),
+          for (final q in [
+            ['faqDataQ', 'faqDataA'],
+            ['faqPaymentsQ', 'faqPaymentsA'],
+            ['faqAiQ', 'faqAiA'],
+            ['faqStatsQ', 'faqStatsA'],
+          ])
+            Card(
+              child: ExpansionTile(
+                title: Text(t(q[0])),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(t(q[1])),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

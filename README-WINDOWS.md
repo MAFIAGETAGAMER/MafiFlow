@@ -1,4 +1,4 @@
-# MafiFlow Windows 1.5.6
+# MafiFlow Windows 1.5.7
 
 Consulta **README-MICROSOFT-STORE.md** para compilar la versión corregida y generar el instalador MSIX para Partner Center.
 

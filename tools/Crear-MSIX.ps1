@@ -1,4 +1,4 @@
-﻿# MafiFlow - Generador de MSIX para Microsoft Store
+# MafiFlow - Generador de MSIX para Microsoft Store
 # Requiere Windows 10/11 + Windows SDK (MakeAppx.exe)
 # Usa siempre la compilacion mas reciente del proyecto Flutter corregido.
 [CmdletBinding()]
@@ -16,7 +16,7 @@ param(
     [string] $PublisherDisplayName,
 
     [ValidatePattern('^[1-9][0-9]{0,4}\.[0-9]{1,5}\.[0-9]{1,5}\.0$')]
-    [string] $Version = '1.5.6.0',
+    [string] $Version = '1.5.7.0',
 
     [string] $OutputPath = '',
 
