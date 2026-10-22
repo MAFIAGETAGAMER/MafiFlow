@@ -1,0 +1,42 @@
+
+name: MafiFlow - Microsoft Store MSIX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Activar Windows
+        run: flutter config --enable-windows-desktop
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Instalar herramienta MSIX
+        run: flutter pub add --dev msix
+
+      - name: Generar paquete Microsoft Store
+        shell: pwsh
+        run: |
+          dart run msix:create --store --display-name "MafiFlow" --identity-name "Mafistudio.MafiFlow" --publisher "CN=728E4776-BB76-436A-88FF-F627802F7887" --publisher-display-name "Mafistudio" --version "1.5.8.0"
+
+      - name: Guardar MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: MafiFlow-MicrosoftStore-MSIX
+          path: build/windows/**/*.msix
+          if-no-files-found: error
