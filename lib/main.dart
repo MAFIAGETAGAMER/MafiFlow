@@ -1210,26 +1210,22 @@ class MafiHelpCenter extends StatefulWidget {
 }
 class _MafiHelpCenterState extends State<MafiHelpCenter> {
   String? category;
-  String? _draftCategory; // Keep a draft when a section is collapsed.
-  final description=TextEditingController();
+  final _bugDescription=TextEditingController();
+  final _ideaDescription=TextEditingController();
+  TextEditingController get description =>
+      category == 'idea' ? _ideaDescription : _bugDescription;
   final location=TextEditingController();
   String t(String key)=>helpLabels[widget.language]?[key]??helpLabels['en']![key]??key;
-  @override void dispose(){description.dispose();location.dispose();super.dispose();}
+  @override void dispose(){_bugDescription.dispose();_ideaDescription.dispose();location.dispose();super.dispose();}
 
   // Expand/collapse the selected section, with arrows that match its state.
-  // A draft survives collapsing its section, but changing from a bug report
-  // to a feature suggestion starts a fresh, separate message.
+  // Each form keeps its own draft across collapse and category changes.
   void _toggleCategory(String selection) {
     setState(() {
       if (category == selection) {
         category = null;
       } else {
-        if (_draftCategory != selection) {
-          description.clear();
-          location.clear();
-        }
         category = selection;
-        _draftCategory = selection;
       }
     });
   }
@@ -1256,7 +1252,7 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
           key: const Key('help-report-bug'),
           leading: const Icon(Icons.bug_report_outlined),
           title: Text(t('reportBug')),
-          trailing: Icon(category == 'bug' ? Icons.expand_less : Icons.chevron_right),
+          trailing: Icon(category == 'bug' ? Icons.expand_less : Icons.expand_more),
           selected: category == 'bug',
           onTap: () => _toggleCategory('bug'),
         ),
@@ -1265,7 +1261,7 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
           key: const Key('help-suggest-feature'),
           leading: const Icon(Icons.lightbulb_outline),
           title: Text(t('suggestFeature')),
-          trailing: Icon(category == 'idea' ? Icons.expand_less : Icons.chevron_right),
+          trailing: Icon(category == 'idea' ? Icons.expand_less : Icons.expand_more),
           selected: category == 'idea',
           onTap: () => _toggleCategory('idea'),
         ),

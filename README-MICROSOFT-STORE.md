@@ -4,9 +4,9 @@ Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, prue
 
 ## Correcciones incluidas
 
-- Las flechas de **Reportar un error** y **Sugerir una función** cambian según el formulario esté cerrado o abierto.
+- Las flechas de **Reportar un error** y **Sugerir una función** muestran chevrón abajo al estar cerradas y chevrón arriba al estar abiertas.
 - Al pulsar una opción abierta, se cierra el formulario. Si lo vuelves a abrir, el texto escrito sigue allí.
-- Cuando pasas de un reporte a una sugerencia, el borrador del otro formulario se limpia para evitar enviar un mensaje equivocado.
+- Cuando pasas de un reporte a una sugerencia, cada formulario conserva su propio borrador, sin mezclar los mensajes.
 - El mensaje de correo identifica la plataforma: `MafiFlow (Windows)` en Windows, en lugar del antiguo `MafiFlow Mobile 1.0.6 Beta 17`.
 - El icono original de Mafistudio se mantiene en la app y en las imágenes del paquete MSIX.
 - Versión Flutter: `1.5.6+22`. Versión del paquete de Microsoft Store: `1.5.6.0`.
@@ -48,7 +48,7 @@ También puedes hacerlo por pasos con `flutter create --platforms=windows --proj
 
 - Abrir la versión corregida y comprobar que el icono y título son MafiFlow.
 - Ir a **Centro de ayuda** → **Reportar un error**. Verificar que la flecha cambie; escribir algo, cerrarlo y reabrirlo para comprobar que el texto se conserve.
-- Abrir **Sugerir una función** y comprobar que tiene su propio formulario vacío.
+- Abrir **Sugerir una función** y comprobar que tiene su propio borrador y que ambos se conservan al alternar.
 - Probar el botón de correo electrónico si Windows tiene configurado un cliente predeterminado.
 - Revisar ingresos, gastos, pagos recurrentes, estadísticas, idiomas y modo oscuro.
 - Probar exportar/importar una copia de seguridad y confirmar que el guardado de datos financieros persiste después de cerrar/abrir la aplicación.

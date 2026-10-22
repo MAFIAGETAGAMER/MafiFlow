@@ -3,52 +3,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mafiflow/main.dart';
 
 void main() {
-  testWidgets('Report a bug arrow expands and collapses, preserving draft',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: MafiHelpCenter(language: 'es')));
-
-    final bugTile = find.byKey(const Key('help-report-bug'));
-    expect(bugTile, findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsNWidgets(2));
-    expect(find.byIcon(Icons.expand_less), findsNothing);
-
-    await tester.tap(bugTile);
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.expand_less), findsOneWidget);
-    expect(find.text('Describe lo ocurrido'), findsOneWidget);
-
-    final reportField = find.widgetWithText(TextField, 'Describe lo ocurrido');
-    await tester.ensureVisible(reportField);
-    await tester.enterText(reportField, 'El botón no responde');
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(bugTile);
-    await tester.tap(bugTile);
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.expand_less), findsNothing);
-    expect(find.text('El botón no responde'), findsNothing);
-
-    await tester.tap(bugTile);
-    await tester.pumpAndSettle();
-    expect(find.text('El botón no responde'), findsOneWidget);
-  });
-
-  testWidgets('Switching to suggestion clears the unrelated bug draft',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: MafiHelpCenter(language: 'en')));
-    await tester.tap(find.byKey(const Key('help-report-bug')));
-    await tester.pumpAndSettle();
-    final field = find.widgetWithText(TextField, 'Describe what happened');
-    await tester.ensureVisible(field);
-    await tester.enterText(field, 'Bug draft');
-
-    final ideaTile = find.byKey(const Key('help-suggest-feature'));
-    await tester.ensureVisible(ideaTile);
-    await tester.tap(ideaTile);
-    await tester.pumpAndSettle();
-
-    expect(find.widgetWithText(TextField, 'Describe your suggestion'), findsOneWidget);
-    expect(find.text('Bug draft'), findsNothing);
-    expect(find.byIcon(Icons.expand_less), findsOneWidget);
-  });
+  for (final language in ['es', 'en']) {
+    testWidgets('Help arrows and independent drafts ($language)', (tester) async {
+      await tester.pumpWidget(MaterialApp(home: MafiHelpCenter(language: language)));
+      final bug = find.byKey(const Key('help-report-bug'));
+      final idea = find.byKey(const Key('help-suggest-feature'));
+      void expectArrow(Finder tile, IconData icon) {
+        expect(find.descendant(of: tile, matching: find.byIcon(icon)), findsOneWidget);
+      }
+      Future<void> toggle(Finder tile) async {
+        await tester.ensureVisible(tile);
+        await tester.tap(tile);
+        await tester.pumpAndSettle();
+      }
+      Future<void> enter(String label, String text) async {
+        final field = find.widgetWithText(TextField, label);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, text);
+        await tester.pumpAndSettle();
+      }
+      final bugLabel = language == 'es' ? 'Describe lo ocurrido' : 'Describe what happened';
+      final ideaLabel = language == 'es' ? 'Describe tu sugerencia' : 'Describe your suggestion';
+      final locationLabel = language == 'es' ? '¿Dónde ocurrió?' : 'Where did it happen?';
+      expectArrow(bug, Icons.expand_more);
+      expectArrow(idea, Icons.expand_more);
+      await toggle(bug);
+      expectArrow(bug, Icons.expand_less);
+      expectArrow(idea, Icons.expand_more);
+      await enter(locationLabel, 'Dashboard');
+      await enter(bugLabel, 'Bug draft');
+      await toggle(bug);
+      expectArrow(bug, Icons.expand_more);
+      expect(find.byType(TextField), findsNothing);
+      await toggle(bug);
+      expect(find.text('Bug draft'), findsOneWidget);
+      expect(find.text('Dashboard'), findsOneWidget);
+      await toggle(idea);
+      expectArrow(bug, Icons.expand_more);
+      expectArrow(idea, Icons.expand_less);
+      expect(find.text('Bug draft'), findsNothing);
+      expect(tester.widget<TextField>(find.widgetWithText(TextField, ideaLabel)).controller!.text, isEmpty);
+      await enter(ideaLabel, 'Idea draft');
+      await toggle(idea);
+      expectArrow(idea, Icons.expand_more);
+      expect(find.byType(TextField), findsNothing);
+      await toggle(idea);
+      expect(find.text('Idea draft'), findsOneWidget);
+      await toggle(bug);
+      expectArrow(bug, Icons.expand_less);
+      expectArrow(idea, Icons.expand_more);
+      expect(find.text('Bug draft'), findsOneWidget);
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Idea draft'), findsNothing);
+      await toggle(idea);
+      expect(find.text('Idea draft'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
