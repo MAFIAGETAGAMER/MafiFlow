@@ -1,22 +1,22 @@
-# MafiFlow - Generador de MSIX para Microsoft Store
+﻿# MafiFlow - Generador de MSIX para Microsoft Store
 # Requiere Windows 10/11 + Windows SDK (MakeAppx.exe)
 # Usa siempre la compilacion mas reciente del proyecto Flutter corregido.
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
+    
     [ValidateNotNullOrEmpty()]
-    [string] $IdentityName,
+    [string] $IdentityName = 'Mafistudio.MafiFlow',
 
-    [Parameter(Mandatory = $true)]
+    
     [ValidateNotNullOrEmpty()]
-    [string] $Publisher,
+    [string] $Publisher = 'CN=728E4776-BB76-436A-88FF-F627802F7887',
 
-    [Parameter(Mandatory = $true)]
+    
     [ValidateNotNullOrEmpty()]
-    [string] $PublisherDisplayName,
+    [string] $PublisherDisplayName = 'Mafistudio',
 
     [ValidatePattern('^[1-9][0-9]{0,4}\.[0-9]{1,5}\.[0-9]{1,5}\.0$')]
-    [string] $Version = '1.5.8.0',
+    [string] $Version = '1.5.9.0',
 
     [string] $OutputPath = '',
 
@@ -136,7 +136,10 @@ try {
           Description="Personal finance management application"
           BackgroundColor="transparent"
           Square150x150Logo="Assets\Square150x150Logo.png"
-          Square44x44Logo="Assets\Square44x44Logo.png" />
+          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile ShortName="MafiFlow" Square71x71Logo="Assets\Square71x71Logo.png"
+            Wide310x150Logo="Assets\Wide310x150Logo.png" Square310x310Logo="Assets\Square310x310Logo.png" />
+      </uap:VisualElements>
     </Application>
   </Applications>
 </Package>
@@ -147,6 +150,20 @@ try {
     $xml = New-Object System.Xml.XmlDocument
     $xml.Load($manifestPath)
 
+    $makepri = Join-Path (Split-Path $makeappx.FullName) 'makepri.exe'
+    if (!(Test-Path $makepri)) { throw 'Falta MakePri.exe' }
+    $priConfig = Join-Path $staging 'priconfig.xml'
+    & $makepri createconfig /cf $priConfig /dq en-US /o
+    if ($LASTEXITCODE -ne 0) { throw 'MakePri createconfig fallo' }
+    # Keep scale and target-size variants in this one package, rather than resource packs.
+    [xml] $config = Get-Content $priConfig -Raw
+    $packaging = $config.SelectSingleNode('//packaging')
+    if ($null -ne $packaging) { $null = $packaging.ParentNode.RemoveChild($packaging) }
+    $config.Save($priConfig)
+    & $makepri new /pr $staging /cf $priConfig /mn $manifestPath /of (Join-Path $staging 'resources.pri') /o
+    if ($LASTEXITCODE -ne 0) { throw 'MakePri new fallo' }
+    Remove-Item -LiteralPath $priConfig -Force
+
     Write-Host "MakeAppx: $($makeappx.FullName)"
     Write-Host "IdentityName: $IdentityName"
     Write-Host "Publisher: $Publisher"
@@ -155,10 +172,15 @@ try {
     if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $OutputPath)) {
         throw "MakeAppx fallo. Codigo: $LASTEXITCODE"
     }
+    & (Join-Path $PSScriptRoot 'Verificar-MSIX.ps1') -PackagePath $OutputPath
     Write-Host 'MSIX generado. Este paquete NO esta firmado; Microsoft Store lo firmara si supera la certificacion.' -ForegroundColor Green
     Write-Host "Archivo: $OutputPath"
     Write-Host 'IMPORTANTE: prueba en un equipo limpio y comprueba persistencia de datos, IA y navegacion antes del envio.' -ForegroundColor Yellow
 }
 finally {
-    if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Force -Recurse }
+    $resolvedStaging = [IO.Path]::GetFullPath($staging)
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    if (!$resolvedStaging.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path $resolvedStaging -Leaf) -notmatch '^mafiflow-msix-[a-f0-9]{32}$') { throw 'Ruta temporal no valida' }
+    if (Test-Path -LiteralPath $resolvedStaging) { Remove-Item -LiteralPath $resolvedStaging -Force -Recurse }
 }

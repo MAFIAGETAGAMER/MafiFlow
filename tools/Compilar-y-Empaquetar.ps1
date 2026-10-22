@@ -1,9 +1,9 @@
-# Ejecutar desde Windows 10/11 con Flutter, Visual Studio C++ y Windows SDK instalados.
+﻿# Ejecutar desde Windows 10/11 con Flutter, Visual Studio C++ y Windows SDK instalados.
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)][string] $IdentityName,
-    [Parameter(Mandatory=$true)][string] $Publisher,
-    [Parameter(Mandatory=$true)][string] $PublisherDisplayName
+    [string] $IdentityName = 'Mafistudio.MafiFlow',
+    [string] $Publisher = 'CN=728E4776-BB76-436A-88FF-F627802F7887',
+    [string] $PublisherDisplayName = 'Mafistudio'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -21,7 +21,7 @@ try {
     Run-Flutter -argsList @('analyze', '--no-fatal-infos', '--no-fatal-warnings')
     Run-Flutter -argsList @('test', 'test/help_center_test.dart')
     Run-Flutter -argsList @('build', 'windows', '--release')
-    & (Join-Path $PSScriptRoot 'Crear-MSIX.ps1') -IdentityName $IdentityName -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version '1.5.8.0' -Overwrite
+    & (Join-Path $PSScriptRoot 'Crear-MSIX.ps1') -IdentityName $IdentityName -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version '1.5.9.0' -Overwrite
     Write-Host 'Compilacion y MSIX para Partner Center generados.' -ForegroundColor Green
 }
 finally { Pop-Location }

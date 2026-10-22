@@ -1,0 +1,74 @@
+{
+  "baseArchive": "MafiFlow_1.5.8_FORMULARIOS_CORREGIDOS_MSIX.zip",
+  "flutterVersion": "1.5.9+25",
+  "storeVersion": "1.5.9.0",
+  "originalFilesPreserved": 9,
+  "changedOrRemovedOriginalFiles": [
+    "store_assets/Square150x150Logo.png",
+    "store_assets/Square44x44Logo.png",
+    "store_assets/StoreLogo.png",
+    "store_assets/Square44x44Logo.targetsize-44_altform-unplated.png",
+    "README-WINDOWS.md",
+    "README-MICROSOFT-STORE.md",
+    "assets/app_icon.png",
+    "assets/MafiFlow.ico",
+    "VERIFICACION-Y-LIMITACIONES.txt",
+    ".github/workflows/windows.yml",
+    "tools/Crear-MSIX.ps1",
+    "tools/Compilar-y-Empaquetar.ps1",
+    "pubspec.yaml"
+  ],
+  "mainDartSha256": "cab6d05d83a68d35b3ff5a7c9a7df227004cf09057e4b9f154bbefe7baebe904",
+  "mainDartByteIdentical": true,
+  "helpTestsByteIdentical": true,
+  "icoSizes": [
+    [
+      16,
+      16
+    ],
+    [
+      20,
+      20
+    ],
+    [
+      24,
+      24
+    ],
+    [
+      32,
+      32
+    ],
+    [
+      40,
+      40
+    ],
+    [
+      48,
+      48
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      96,
+      96
+    ],
+    [
+      128,
+      128
+    ],
+    [
+      256,
+      256
+    ]
+  ],
+  "msixPngCount": 90,
+  "syntheticPackagingTest": "PASS - MakePri + MakeAppx; 90 PNG hashes and 10 PE icon resources matched",
+  "tamperedLogoTest": "PASS - rejected",
+  "flutterAnalyze": "NOT RUN",
+  "flutterTest": "NOT RUN",
+  "flutterWindowsBuild": "NOT RUN",
+  "realApplicationMsix": "NOT GENERATED",
+  "runtimeTest": "NOT RUN"
+}

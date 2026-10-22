@@ -1,62 +1,49 @@
-# MafiFlow para Microsoft Store — Windows 1.5.8
+# MafiFlow 1.5.9.0 — logo oficial y Microsoft Store
 
-Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, pruebas de la sección de ayuda y un generador MSIX. **No incluye un `.msix` compilado**: hay que compilar en Windows y utilizar los identificadores oficiales de Partner Center.
+Fuente base: MafiFlow_1.5.8_FORMULARIOS_CORREGIDOS_MSIX.zip.
+lib/main.dart y test/help_center_test.dart se conservan byte por byte; no se modificaron lógica financiera, formularios ni datos. Versión Flutter 1.5.9+25; paquete Store 1.5.9.0.
 
-## Correcciones incluidas
+## Generar y descargar el paquete real
 
-- Los encabezados **Reportar un error** y **Sugerir una función** son `ExpansionTile`, exactamente igual que las FAQ: flecha abajo al cerrar, flecha arriba al abrir y la misma animación y colores según el tema.
-- Cada sección abre su formulario **inmediatamente bajo su propio encabezado**. Pueden abrirse ambas a la vez; cerrar una no cierra la otra. El texto escrito se conserva al cerrar y reabrir.
-- Cada formulario tiene controladores de texto propios: el reporte y la sugerencia nunca comparten ni borran sus borradores al cambiar de sección.
-- El mensaje de correo identifica la plataforma: `MafiFlow (Windows)` en Windows, en lugar del antiguo `MafiFlow Mobile 1.0.6 Beta 17`.
-- El icono original de Mafistudio se mantiene en la app y en las imágenes del paquete MSIX.
-- Versión Flutter: `1.5.8+24`. Versión del paquete de Microsoft Store: `1.5.8.0`.
+1. Sube el contenido completo de MafiFlow-main al repositorio, incluyendo carpetas ocultas.
+2. Elimina el workflow antiguo .github/workflows/windows.yml del repositorio si todavía existe. Lo sustituye .github/workflows/microsoft-store.yml; conserva este único flujo para evitar compilaciones duplicadas.
+3. Abre Actions → Compilar MafiFlow Windows y Microsoft Store MSIX → Run workflow. También se ejecuta al hacer push a main. No requiere campos ni secretos de firma.
+4. Tras pasar análisis, pruebas y compilación, descarga MafiFlow-Microsoft-Store-MSIX-1.5.9. Dentro estarán el MSIX sin firmar y el informe *.verification.json.
+5. Sube el MSIX a la actualización de la aplicación existente en Partner Center. Este proyecto no publica automáticamente.
+6. Para el logo de la ficha, utiliza las imágenes de store_listing en los campos de logotipo correspondientes de Partner Center. Cambiar el paquete no garantiza que cambien los gráficos cargados por separado en la ficha. No uses StoreLogo.png de 50 px para un campo que pida 300 px.
 
-## Opción recomendada: generar EXE y MSIX con GitHub Actions
+Identidad configurada:
+- Identity Name: Mafistudio.MafiFlow
+- Publisher: CN=728E4776-BB76-436A-88FF-F627802F7887
+- PublisherDisplayName: Mafistudio
+- DisplayName de la aplicación: MafiFlow
+- Version: 1.5.9.0, arquitectura x64
 
-1. Extrae el ZIP y **sube el CONTENIDO de la carpeta `MafiFlow-main/`** al repositorio de GitHub donde construyes MafiFlow. Actualiza `.github/workflows/windows.yml` y todos los archivos nuevos. **No subas solamente el ZIP a Releases**, ya que GitHub Actions necesita acceder al código fuente.
-2. Abre [Microsoft Partner Center](https://partner.microsoft.com/dashboard) → **MafiFlow → Identidad del producto / Product identity**. Copia de allí exactamente estos tres valores:
-   - **Identity name** (`identity_name`): NO el nombre visible `MafiFlow` a secas; usa el nombre de identidad que Microsoft asignó.
-   - **Publisher** (`publisher`): el valor completo, por ejemplo comenzando por `CN=`; **no inventes ni cambies espacios o caracteres**.
-   - **Publisher display name** (`publisher_display_name`): el nombre autorizado por Microsoft; puede ser diferente de tu marca pública Mafistudio.
-3. En el repositorio, entra a **Actions → Compilar MafiFlow Windows y Microsoft Store MSIX → Run workflow**.
-4. Escribe los tres valores anteriores, selecciona la rama `main` y ejecuta el workflow.
-5. Al terminar satisfactoriamente, en la ejecución de GitHub Actions aparecen **dos artefactos**:
-   - `MafiFlow-Windows-1.5.8-FIX`: ejecutable Windows corregido con todas las DLL y recursos. Extrae **toda la carpeta**, no solo el `.exe`.
-   - `MafiFlow-Microsoft-Store-MSIX-1.5.8`: archivo `.msix` **sin firmar**, destinado a **Partner Center → Paquetes**. Microsoft lo firma tras la certificación.
-6. Sube el `.msix` resultante a la presentación ya creada en Microsoft Store.
+## Iconos
 
-Si se ejecuta el workflow sin los tres campos, se genera el EXE corregido pero **no** el MSIX. Si falla una prueba, no se genera el artefacto posterior; consulta el log y corrige el error antes de publicar.
+assets/MafiFlow-official.png conserva el adjunto original. Se mantiene su proporción y transparencia, centrado sin recortar ni redibujar.
+assets/MafiFlow.ico: 16, 20, 24, 32, 40, 48, 64, 96, 128 y 256 px; se copia al recurso nativo IDI_APP_ICON antes de compilar.
+store_assets: 90 PNG para logos de paquete, menú Inicio y mosaicos, escalas hasta 400% y variantes targetsize/unplated/lightunplated. MakePri genera resources.pri antes de MakeAppx.
+store_listing: logos de 300, 150 y 71 px para la ficha.
+assets/logo.png (imagen interna de la aplicación) se conserva del ZIP original.
 
-## Alternativa: crear el MSIX desde tu PC Windows
+## Comprobaciones automáticas del paquete
 
-Instala Flutter, Visual Studio con **Desarrollo para escritorio con C++** y Windows SDK. Abre PowerShell desde la carpeta raíz del proyecto y ejecuta **un solo script**, usando tus valores reales de Microsoft:
+tools/Verificar-MSIX.ps1 abre el MSIX real, revisa identidad, versión, rutas del manifiesto y resources.pri. Compara por SHA-256 los 90 PNG empaquetados contra los assets oficiales y compara los diez recursos del icono de MafiFlow.exe con el ICO esperado. Si hay diferencias, el flujo falla antes de subir el artefacto MSIX. El informe no equivale a una prueba de ejecución o certificación Store.
+
+Alternativa local, con Flutter, Visual Studio C++ y Windows SDK instalados:
 
 ```powershell
-.\tools\Compilar-y-Empaquetar.ps1 `
-  -IdentityName 'IDENTIDAD_EXACTA_DE_PARTNER_CENTER' `
-  -Publisher 'CN=EDITOR_EXACTO_DE_PARTNER_CENTER' `
-  -PublisherDisplayName 'NOMBRE_PUBLICADOR_AUTORIZADO'
+.\tools\Compilar-y-Empaquetar.ps1
 ```
 
-Este script genera el proyecto Windows, configura el branding, instala dependencias, analiza el código, ejecuta las pruebas, compila la versión Release y llama al generador MSIX.
+Resultado: dist/MafiFlow_Store_x64_1.5.9.0.msix. El paquete Store se entrega sin firma local.
 
-Si todo pasa, el archivo generado estará en `dist\MafiFlow_Store_x64_1.5.8.0.msix`. Si fallan pruebas o compilación, **no debes subir un paquete anterior**.
+## Validación realizada al preparar este ZIP
 
-También puedes hacerlo por pasos con `flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .`, `tools/Branding-Windows.ps1`, `flutter pub get`, `flutter test`, `flutter build windows --release` y `tools/Crear-MSIX.ps1`.
+- Sintaxis PowerShell y estructura de archivos revisadas.
+- MakePri y MakeAppx ejecutados con un EXE SINTÉTICO de prueba: manifiesto y empaquetado aceptados; 90 logos y diez recursos ICO verificados. Un PNG alterado fue rechazado correctamente. El paquete sintético no se incluye ni es una compilación de MafiFlow.
+- Integridad del ZIP, tamaños del ICO y preservación de archivos fuente comprobados; véase VALIDACION-1.5.9.json.
+- NO se ejecutaron flutter analyze, flutter test ni flutter build windows: Flutter no está instalado aquí. No se verificó ejecución, instalación, persistencia de datos ni certificación Microsoft Store. El flujo incluido debe completar esas etapas antes de distribuir la aplicación.
 
-## Pruebas antes de enviar a Microsoft
-
-- Abrir la versión corregida y comprobar que el icono y título son MafiFlow.
-- Ir a **Centro de ayuda** → **Reportar un error**. Verificar que la flecha esté abajo inicialmente, arriba al abrir y abajo al cerrar; escribir algo, cerrarlo y reabrirlo para comprobar que el texto se conserve.
-- Abrir **Sugerir una función** y comprobar que aparece justo debajo de su encabezado, con su propio campo vacío; abrir ambas y cerrar cada una por separado. Repetir en tema claro/oscuro, idiomas y una ventana estrecha.
-- Probar el botón de correo electrónico si Windows tiene configurado un cliente predeterminado.
-- Revisar ingresos, gastos, pagos recurrentes, estadísticas, idiomas y modo oscuro.
-- Probar exportar/importar una copia de seguridad y confirmar que el guardado de datos financieros persiste después de cerrar/abrir la aplicación.
-- **Importante al pasar de EXE a MSIX:** puede cambiar la ubicación de almacenamiento que usa Windows. Exporta una copia de los datos desde la versión anterior antes de instalar la versión de Microsoft Store; verifica que se puedan importar después. No desinstales ni borres datos antes de comprobarlo.
-- Ejecutar `flutter analyze` y `flutter test` en Windows. Las pruebas automatizadas incluidas prueban el formulario, **no sustituyen las pruebas manuales de todas las funciones**.
-
-## Limitaciones
-
-Este entorno no compila ejecutables Flutter de Windows ni puede ejecutar MakeAppx de Windows SDK. Por eso el resultado que recibes es **el código fuente corregido y listo para compilar con GitHub Actions**, no un MSIX ya verificado. El flujo debe superar las pruebas en `windows-latest` y la revisión de Microsoft Store.
-
-Recursos: [MSIX for Flutter](https://pub.dev/packages/msix) · [Microsoft MSIX](https://learn.microsoft.com/windows/msix/)
+Documentación usada: https://learn.microsoft.com/windows/apps/design/style/iconography/app-icon-construction y https://learn.microsoft.com/windows/uwp/app-resources/makepri-exe-command-options
