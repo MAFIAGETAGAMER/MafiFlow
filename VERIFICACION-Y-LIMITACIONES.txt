@@ -1,23 +1,22 @@
-REVISIÓN DEL PROYECTO MAFIFLOW 1.5.7
+REVISIÓN MAFIFLOW 1.5.8 — 22 OCTUBRE 2026
 
-VERIFICADO EN ESTE ENTORNO:
-- Se analizó el código fuente lib/main.dart y se aplicó un cambio localizado en MafiHelpCenter.
-- Se comparó el código modificado con el original: las funciones financieras quedaron sin modificar.
-- Se incluyeron 4 pruebas Flutter para independencia de secciones, ubicación de formularios, conservación de ambos borradores, FAQ, idiomas y temas. Las pruebas están escritas pero NO se ejecutaron en este entorno.
-- Se validó estructuralmente el YAML de GitHub Actions y la existencia de todos los scripts y recursos.
-- Se comprobó el contenido de la plantilla XML del manifiesto MSIX; su validación por MakeAppx requiere Windows SDK.
-- Se verificaron dimensiones de iconos requeridos y que el paquete fuente no contiene el exe viejo.
+ARCHIVOS REVISADOS Y MODIFICADOS:
+- lib/main.dart: solamente Centro de ayuda; se sustituyeron los acordeones de feedback por tarjetas animadas independientes para evitar la regresión de rectángulos grises observada en Windows release.
+- test/help_center_test.dart: pruebas de flechas, posicionamiento, tamaño, campos, independencia, FAQ, traducciones y temas.
+- pubspec.yaml: versión 1.5.8+24.
+- Workflow, scripts y guías MSIX: versión 1.5.8.0.
 
-NO SE PUDO VERIFICAR AQUÍ:
-- Compilación de Flutter para Windows: no se dispone del SDK Flutter ni del compilador Windows.
-- Ejecución de flutter analyze/test: se realizará en GitHub Actions o en un PC con Flutter.
-- Ejecución de MakeAppx.exe para generar el MSIX: necesita Windows SDK.
-- Que la Microsoft Store apruebe el envío, ni que el paquete se instale sin incidencias.
+VERIFICACIÓN DISPONIBLE EN ESTE ENTORNO:
+- Inspección estática del código, emparejamiento de estructura y verificación de integridad de ZIP.
+- Revisión de la configuración de versionado y publicación.
+
+AÚN NO VERIFICADO EN WINDOWS:
+- flutter analyze y flutter test (Flutter SDK no está instalado aquí).
+- Ejecución de la app en Windows: el rectángulo gris puede ser ErrorWidget de Flutter, pero sin el log de la excepción no puede confirmarse su causa exacta.
+- Creación del MSIX con Windows SDK y aprobación por Microsoft Store.
 
 ANTES DE PUBLICAR:
-- Generar nuevo ejecutable y MSIX con GitHub Actions, no usar versiones anteriores.
-- Introducir la identidad REAL de la aplicación de Partner Center.
-- Probar manualmente la sección de ayuda y las operaciones financieras.
-- Exportar un respaldo de los datos existentes si vas a instalar MSIX desde EXE.
-
-Ninguna compilación ni prueba no ejecutada debe considerarse aprobada.
+- Subir la fuente corregida al repositorio, lanzar workflow en GitHub Actions.
+- Si las pruebas pasan, abrir la app Windows corregida y probar ambos formularios en oscuro/claro, cinco idiomas y tamaños de ventana.
+- Exportar copia de seguridad de los datos financieros existentes antes de cambiar el método de instalación.
+- Si persistiera un rectángulo gris, capturar la excepción exacta con flutter run -d windows en modo debug, NO publicar.

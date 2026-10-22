@@ -21,7 +21,7 @@ try {
     Run-Flutter -argsList @('analyze', '--no-fatal-infos', '--no-fatal-warnings')
     Run-Flutter -argsList @('test', 'test/help_center_test.dart')
     Run-Flutter -argsList @('build', 'windows', '--release')
-    & (Join-Path $PSScriptRoot 'Crear-MSIX.ps1') -IdentityName $IdentityName -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version '1.5.7.0' -Overwrite
+    & (Join-Path $PSScriptRoot 'Crear-MSIX.ps1') -IdentityName $IdentityName -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version '1.5.8.0' -Overwrite
     Write-Host 'Compilacion y MSIX para Partner Center generados.' -ForegroundColor Green
 }
 finally { Pop-Location }

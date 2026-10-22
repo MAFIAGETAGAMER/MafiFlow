@@ -1220,6 +1220,9 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
   final _bugDescription = TextEditingController();
   final _bugLocation = TextEditingController();
   final _ideaDescription = TextEditingController();
+  // Each panel owns its own expansion state. The drafts live independently.
+  bool _bugOpen = false;
+  bool _ideaOpen = false;
 
   String t(String key) =>
       helpLabels[widget.language]?[key] ?? helpLabels['en']![key] ?? key;
@@ -1270,20 +1273,24 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
     }
   }
 
-  // Contents live INSIDE the expansion tile, immediately below their title.
-  // This is the same structure as each FAQ answer, not a shared card below
-  // the two headings (which previously caused the misplaced form bug).
+  // Build the feedback body OUTSIDE ExpansionTile's internal animated layout.
+  // On Windows release, the previous implementation rendered the default grey
+  // Flutter error placeholder instead of the fields. This design preserves the
+  // FAQ chevron/height animation while bounding the input area separately.
   Widget _feedbackFields({required bool isBug}) {
     final description = isBug ? _bugDescription : _ideaDescription;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      key: Key(isBug ? 'help-bug-form' : 'help-idea-form'),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (isBug) ...[
             TextField(
               key: const Key('help-bug-location'),
               controller: _bugLocation,
+              maxLines: 1,
               decoration: InputDecoration(
                 labelText: t('whereBug'),
                 border: const OutlineInputBorder(),
@@ -1295,7 +1302,7 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
             key: Key(isBug ? 'help-bug-description' : 'help-idea-description'),
             controller: description,
             minLines: 3,
-            maxLines: 6,
+            maxLines: 5,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               labelText: t(isBug ? 'describeBug' : 'describeIdea'),
@@ -1318,6 +1325,65 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
     );
   }
 
+  // One independent accordion per form; the animation is the same visual
+  // treatment as the FAQ but TextFields don't participate in ExpansionTile's
+  // internal animated child builder.
+  Widget _feedbackPanel({required bool isBug}) {
+    final expanded = isBug ? _bugOpen : _ideaOpen;
+    final scheme = Theme.of(context).colorScheme;
+    final title = t(isBug ? 'reportBug' : 'suggestFeature');
+    final key = Key(isBug ? 'help-report-bug' : 'help-suggest-feature');
+    return Card(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            key: key,
+            leading: Icon(isBug ? Icons.bug_report_outlined : Icons.lightbulb_outline),
+            title: Text(title),
+            onTap: () => setState(() {
+              if (isBug) {
+                _bugOpen = !_bugOpen;
+              } else {
+                _ideaOpen = !_ideaOpen;
+              }
+            }),
+            trailing: AnimatedRotation(
+              key: Key(isBug ? 'help-bug-arrow' : 'help-idea-arrow'),
+              turns: expanded ? 0.5 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: Icon(
+                Icons.expand_more,
+                color: expanded ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedSize(
+              key: Key(isBug ? 'help-bug-expand' : 'help-idea-expand'),
+              duration: const Duration(milliseconds: 200),
+              alignment: Alignment.topCenter,
+              curve: Curves.easeInOut,
+              child: expanded
+                  ? ConstrainedBox(
+                      // Guard against unbounded input areas on Windows.
+                      constraints: BoxConstraints(
+                        maxHeight: isBug ? 410 : 310,
+                      ),
+                      child: SingleChildScrollView(
+                        primary: false,
+                        child: _feedbackFields(isBug: isBug),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1326,22 +1392,8 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: ExpansionTile(
-              key: const PageStorageKey<String>('help-report-bug'),
-              leading: const Icon(Icons.bug_report_outlined),
-              title: Text(t('reportBug')),
-              children: [_feedbackFields(isBug: true)],
-            ),
-          ),
-          Card(
-            child: ExpansionTile(
-              key: const PageStorageKey<String>('help-suggest-feature'),
-              leading: const Icon(Icons.lightbulb_outline),
-              title: Text(t('suggestFeature')),
-              children: [_feedbackFields(isBug: false)],
-            ),
-          ),
+          _feedbackPanel(isBug: true),
+          _feedbackPanel(isBug: false),
           const SizedBox(height: 12),
           Text(t('faq'), style: theme.textTheme.titleLarge),
           for (final q in [

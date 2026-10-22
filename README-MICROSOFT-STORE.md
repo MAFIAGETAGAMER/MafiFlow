@@ -1,4 +1,4 @@
-# MafiFlow para Microsoft Store — Windows 1.5.7
+# MafiFlow para Microsoft Store — Windows 1.5.8
 
 Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, pruebas de la sección de ayuda y un generador MSIX. **No incluye un `.msix` compilado**: hay que compilar en Windows y utilizar los identificadores oficiales de Partner Center.
 
@@ -9,7 +9,7 @@ Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, prue
 - Cada formulario tiene controladores de texto propios: el reporte y la sugerencia nunca comparten ni borran sus borradores al cambiar de sección.
 - El mensaje de correo identifica la plataforma: `MafiFlow (Windows)` en Windows, en lugar del antiguo `MafiFlow Mobile 1.0.6 Beta 17`.
 - El icono original de Mafistudio se mantiene en la app y en las imágenes del paquete MSIX.
-- Versión Flutter: `1.5.7+23`. Versión del paquete de Microsoft Store: `1.5.7.0`.
+- Versión Flutter: `1.5.8+24`. Versión del paquete de Microsoft Store: `1.5.8.0`.
 
 ## Opción recomendada: generar EXE y MSIX con GitHub Actions
 
@@ -21,8 +21,8 @@ Este ZIP contiene el **código Flutter/Dart corregido**, iconos originales, prue
 3. En el repositorio, entra a **Actions → Compilar MafiFlow Windows y Microsoft Store MSIX → Run workflow**.
 4. Escribe los tres valores anteriores, selecciona la rama `main` y ejecuta el workflow.
 5. Al terminar satisfactoriamente, en la ejecución de GitHub Actions aparecen **dos artefactos**:
-   - `MafiFlow-Windows-1.5.7-FIX`: ejecutable Windows corregido con todas las DLL y recursos. Extrae **toda la carpeta**, no solo el `.exe`.
-   - `MafiFlow-Microsoft-Store-MSIX-1.5.7`: archivo `.msix` **sin firmar**, destinado a **Partner Center → Paquetes**. Microsoft lo firma tras la certificación.
+   - `MafiFlow-Windows-1.5.8-FIX`: ejecutable Windows corregido con todas las DLL y recursos. Extrae **toda la carpeta**, no solo el `.exe`.
+   - `MafiFlow-Microsoft-Store-MSIX-1.5.8`: archivo `.msix` **sin firmar**, destinado a **Partner Center → Paquetes**. Microsoft lo firma tras la certificación.
 6. Sube el `.msix` resultante a la presentación ya creada en Microsoft Store.
 
 Si se ejecuta el workflow sin los tres campos, se genera el EXE corregido pero **no** el MSIX. Si falla una prueba, no se genera el artefacto posterior; consulta el log y corrige el error antes de publicar.
@@ -40,7 +40,7 @@ Instala Flutter, Visual Studio con **Desarrollo para escritorio con C++** y Wind
 
 Este script genera el proyecto Windows, configura el branding, instala dependencias, analiza el código, ejecuta las pruebas, compila la versión Release y llama al generador MSIX.
 
-Si todo pasa, el archivo generado estará en `dist\MafiFlow_Store_x64_1.5.7.0.msix`. Si fallan pruebas o compilación, **no debes subir un paquete anterior**.
+Si todo pasa, el archivo generado estará en `dist\MafiFlow_Store_x64_1.5.8.0.msix`. Si fallan pruebas o compilación, **no debes subir un paquete anterior**.
 
 También puedes hacerlo por pasos con `flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .`, `tools/Branding-Windows.ps1`, `flutter pub get`, `flutter test`, `flutter build windows --release` y `tools/Crear-MSIX.ps1`.
 

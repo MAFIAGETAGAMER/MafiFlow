@@ -3,44 +3,54 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mafiflow/main.dart';
 
 void main() {
-  Future<void> showHelp(WidgetTester tester, {
+  Future<void> showHelp(
+    WidgetTester tester, {
     String language = 'es',
     ThemeMode themeMode = ThemeMode.light,
   }) async {
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(useMaterial3: true),
-      darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green), useMaterial3: true),
+      darkTheme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.dark), useMaterial3: true),
       themeMode: themeMode,
       home: MafiHelpCenter(language: language),
     ));
+    await tester.pumpAndSettle();
   }
 
-  final bug = find.byKey(const PageStorageKey<String>('help-report-bug'));
-  final idea = find.byKey(const PageStorageKey<String>('help-suggest-feature'));
+  final bug = find.byKey(const Key('help-report-bug'));
+  final idea = find.byKey(const Key('help-suggest-feature'));
+  final bugArrow = find.byKey(const Key('help-bug-arrow'));
+  final ideaArrow = find.byKey(const Key('help-idea-arrow'));
+  final bugForm = find.byKey(const Key('help-bug-form'));
+  final ideaForm = find.byKey(const Key('help-idea-form'));
   final bugLocation = find.byKey(const Key('help-bug-location'));
   final bugMessage = find.byKey(const Key('help-bug-description'));
   final ideaMessage = find.byKey(const Key('help-idea-description'));
 
-  testWidgets('Uses two independent native FAQ-style ExpansionTiles',
+  void noUiErrors(WidgetTester tester) {
+    expect(find.byType(ErrorWidget), findsNothing,
+        reason: 'Flutter release would display a giant grey rectangle instead');
+    expect(tester.takeException(), isNull);
+  }
+
+  testWidgets('Native FAQ preserved; feedback arrows rotate down/up independently',
       (tester) async {
     await showHelp(tester);
-    expect(tester.widget<ExpansionTile>(bug), isA<ExpansionTile>());
-    expect(tester.widget<ExpansionTile>(idea), isA<ExpansionTile>());
-    // Leave the arrow to the same native animation as FAQ (no custom trailing).
-    expect(tester.widget<ExpansionTile>(bug).trailing, isNull);
-    expect(tester.widget<ExpansionTile>(idea).trailing, isNull);
-    expect(find.byType(ExpansionTile), findsNWidgets(6)); // 2 feedback + 4 FAQ
-    expect(bugLocation, findsNothing);
-    expect(bugMessage, findsNothing);
-    expect(ideaMessage, findsNothing);
+    expect(find.byType(ExpansionTile), findsNWidgets(4));
+    expect(tester.widget<AnimatedRotation>(bugArrow).turns, 0.0);
+    expect(tester.widget<AnimatedRotation>(ideaArrow).turns, 0.0);
+    expect(bugForm, findsNothing);
+    expect(ideaForm, findsNothing);
 
     await tester.tap(bug);
     await tester.pumpAndSettle();
-    expect(bugMessage, findsOneWidget);
+    noUiErrors(tester);
+    expect(tester.widget<AnimatedRotation>(bugArrow).turns, 0.5);
+    expect(tester.widget<AnimatedRotation>(ideaArrow).turns, 0.0);
+    expect(bugForm, findsOneWidget);
     expect(bugLocation, findsOneWidget);
-    expect(ideaMessage, findsNothing);
-
-    // The bug form must be *under its own header*, before the idea header.
+    expect(bugMessage, findsOneWidget);
+    expect(ideaForm, findsNothing);
     expect(tester.getTopLeft(bugMessage).dy,
         greaterThan(tester.getTopLeft(bug).dy));
     expect(tester.getTopLeft(bugMessage).dy,
@@ -49,19 +59,43 @@ void main() {
     await tester.ensureVisible(idea);
     await tester.tap(idea);
     await tester.pumpAndSettle();
-    expect(bugMessage, findsOneWidget); // Opening idea does NOT close bug.
-    expect(ideaMessage, findsOneWidget);
+    noUiErrors(tester);
+    expect(tester.widget<AnimatedRotation>(bugArrow).turns, 0.5);
+    expect(tester.widget<AnimatedRotation>(ideaArrow).turns, 0.5);
+    expect(bugForm, findsOneWidget);
+    expect(ideaForm, findsOneWidget);
     expect(tester.getTopLeft(ideaMessage).dy,
         greaterThan(tester.getTopLeft(idea).dy));
 
     await tester.ensureVisible(bug);
     await tester.tap(bug);
     await tester.pumpAndSettle();
-    expect(bugMessage, findsNothing);
-    expect(ideaMessage, findsOneWidget); // Closing bug leaves idea open.
+    noUiErrors(tester);
+    expect(bugForm, findsNothing);
+    expect(ideaForm, findsOneWidget);
+    expect(tester.widget<AnimatedRotation>(bugArrow).turns, 0.0);
+    expect(tester.widget<AnimatedRotation>(ideaArrow).turns, 0.5);
   });
 
-  testWidgets('Both drafts remain independent through collapse and reopen',
+  testWidgets('Both forms have finite layout and do not become grey placeholders',
+      (tester) async {
+    await showHelp(tester);
+    await tester.tap(bug);
+    await tester.pumpAndSettle();
+    noUiErrors(tester);
+    expect(tester.getSize(find.byKey(const Key('help-bug-expand'))).height, lessThanOrEqualTo(410));
+    expect(tester.getSize(bugMessage).height, lessThan(230));
+    expect(find.byKey(const Key('help-send-bug')), findsOneWidget);
+    await tester.ensureVisible(idea);
+    await tester.tap(idea);
+    await tester.pumpAndSettle();
+    noUiErrors(tester);
+    expect(tester.getSize(find.byKey(const Key('help-idea-expand'))).height, lessThanOrEqualTo(310));
+    expect(tester.getSize(ideaMessage).height, lessThan(230));
+    expect(find.byKey(const Key('help-send-idea')), findsOneWidget);
+  });
+
+  testWidgets('Closing one form preserves both independent drafts',
       (tester) async {
     await showHelp(tester);
     await tester.tap(bug);
@@ -76,18 +110,19 @@ void main() {
     await tester.pumpAndSettle();
     await tester.ensureVisible(ideaMessage);
     await tester.enterText(ideaMessage, 'Mejora de prueba 456');
+    expect(tester.widget<FilledButton>(
+        find.byKey(const Key('help-send-idea'))).onPressed, isNotNull);
 
-    // Fold one at a time and check that the other is unaffected.
     await tester.ensureVisible(bug);
     await tester.tap(bug);
     await tester.pumpAndSettle();
-    expect(bugMessage, findsNothing);
-    expect(ideaMessage, findsOneWidget);
+    expect(bugForm, findsNothing);
+    expect(ideaForm, findsOneWidget);
 
     await tester.ensureVisible(idea);
     await tester.tap(idea);
     await tester.pumpAndSettle();
-    expect(ideaMessage, findsNothing);
+    expect(ideaForm, findsNothing);
 
     await tester.ensureVisible(bug);
     await tester.tap(bug);
@@ -102,9 +137,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<TextField>(ideaMessage).controller!.text,
         'Mejora de prueba 456');
+    noUiErrors(tester);
   });
 
-  testWidgets('FAQ also opens and closes without changing feedback sections',
+  testWidgets('Frequently asked questions remain native and independent',
       (tester) async {
     await showHelp(tester);
     await tester.tap(bug);
@@ -114,16 +150,16 @@ void main() {
     await tester.tap(faq);
     await tester.pumpAndSettle();
     expect(find.textContaining('En este dispositivo.'), findsOneWidget);
-    expect(bugMessage, findsOneWidget);
-
+    expect(bugForm, findsOneWidget);
     await tester.ensureVisible(faq);
     await tester.tap(faq);
     await tester.pumpAndSettle();
     expect(find.textContaining('En este dispositivo.'), findsNothing);
-    expect(bugMessage, findsOneWidget);
+    expect(bugForm, findsOneWidget);
+    noUiErrors(tester);
   });
 
-  testWidgets('Five translations and both themes support narrow screens',
+  testWidgets('Five translations, dark/light theme, narrow window',
       (tester) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(360, 640);
@@ -141,15 +177,13 @@ void main() {
     for (final mode in [ThemeMode.light, ThemeMode.dark]) {
       for (final entry in names.entries) {
         await showHelp(tester, language: entry.key, themeMode: mode);
-        await tester.pumpAndSettle();
         expect(find.text(entry.value[0]), findsOneWidget);
         expect(find.text(entry.value[1]), findsOneWidget);
         await tester.tap(bug);
         await tester.pumpAndSettle();
         expect(find.text(entry.value[2]), findsOneWidget);
-        expect(tester.takeException(), isNull,
-            reason: 'Layout error for ${entry.key} in $mode');
-        // Remounting is also expected to reset the expansion state.
+        expect(tester.getSize(find.byKey(const Key('help-bug-expand'))).height, lessThanOrEqualTo(411));
+        noUiErrors(tester);
         await tester.pumpWidget(const SizedBox.shrink());
       }
     }
