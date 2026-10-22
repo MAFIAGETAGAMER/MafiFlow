@@ -22,7 +22,10 @@ jobs:
 
       - name: Activar Windows
         run: flutter config --enable-windows-desktop
-
+        
+      - name: Crear proyecto Windows
+        run: flutter create --platforms=windows .
+        
       - name: Instalar dependencias
         run: flutter pub get
 
