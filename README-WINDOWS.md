@@ -1,5 +1,8 @@
-# MafiFlow Windows 1.5.5
+# MafiFlow Windows 1.5.6
 
-Sube todos los archivos al repositorio PC. Ejecuta Actions > Build MafiFlow Windows EXE. Descarga el artefacto MafiFlow-Windows-1.5.5-NEW y extrae la carpeta completa en una carpeta NUEVA. Abre MafiFlow.exe.
+Consulta **README-MICROSOFT-STORE.md** para compilar la versión corregida y generar el instalador MSIX para Partner Center.
 
-El workflow configura y comprueba el icono nativo verde, el nombre MafiFlow.exe y el titulo de ventana MafiFlow.
+1. Sube el contenido de este proyecto a tu repositorio GitHub.
+2. Ejecuta **Actions → Compilar MafiFlow Windows y Microsoft Store MSIX**.
+3. Introduce los tres valores oficiales de **Identidad del producto** de Microsoft Partner Center para obtener también el MSIX.
+4. Descarga los artefactos generados después de una ejecución exitosa. **No uses el ejecutable anterior**, ya que no incluye la reparación.

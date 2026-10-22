@@ -1,0 +1,23 @@
+REVISIÓN DEL PROYECTO MAFIFLOW 1.5.6
+
+VERIFICADO EN ESTE ENTORNO:
+- Se analizó el código fuente lib/main.dart y se aplicó un cambio localizado en MafiHelpCenter.
+- Se comparó el código modificado con el original: las funciones financieras quedaron sin modificar.
+- Se añadieron 2 pruebas automáticas Flutter para expandir/contraer la sección de bugs y cambiar a sugerencias.
+- Se validó estructuralmente el YAML de GitHub Actions y la existencia de todos los scripts y recursos.
+- Se analizó como XML el manifiesto MSIX que generará Crear-MSIX.ps1 (usando valores de prueba solo para validar la plantilla).
+- Se verificaron dimensiones de iconos requeridos y que el paquete fuente no contiene el exe viejo.
+
+NO SE PUDO VERIFICAR AQUÍ:
+- Compilación de Flutter para Windows: no se dispone del SDK Flutter ni del compilador Windows.
+- Ejecución de flutter analyze/test: se realizará en GitHub Actions o en un PC con Flutter.
+- Ejecución de MakeAppx.exe para generar el MSIX: necesita Windows SDK.
+- Que la Microsoft Store apruebe el envío, ni que el paquete se instale sin incidencias.
+
+ANTES DE PUBLICAR:
+- Generar nuevo ejecutable y MSIX con GitHub Actions, no usar versiones anteriores.
+- Introducir la identidad REAL de la aplicación de Partner Center.
+- Probar manualmente la sección de ayuda y las operaciones financieras.
+- Exportar un respaldo de los datos existentes si vas a instalar MSIX desde EXE.
+
+Ninguna compilación ni prueba no ejecutada debe considerarse aprobada.

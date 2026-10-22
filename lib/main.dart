@@ -1210,13 +1210,36 @@ class MafiHelpCenter extends StatefulWidget {
 }
 class _MafiHelpCenterState extends State<MafiHelpCenter> {
   String? category;
+  String? _draftCategory; // Keep a draft when a section is collapsed.
   final description=TextEditingController();
   final location=TextEditingController();
   String t(String key)=>helpLabels[widget.language]?[key]??helpLabels['en']![key]??key;
   @override void dispose(){description.dispose();location.dispose();super.dispose();}
+
+  // Expand/collapse the selected section, with arrows that match its state.
+  // A draft survives collapsing its section, but changing from a bug report
+  // to a feature suggestion starts a fresh, separate message.
+  void _toggleCategory(String selection) {
+    setState(() {
+      if (category == selection) {
+        category = null;
+      } else {
+        if (_draftCategory != selection) {
+          description.clear();
+          location.clear();
+        }
+        category = selection;
+        _draftCategory = selection;
+      }
+    });
+  }
+
   Future<void> send() async {
-    final subject=category=='bug'?'MafiFlow Mobile - Bug report':'MafiFlow Mobile - Feature suggestion';
-    final body='MafiFlow Mobile 1.0.6 Beta 17\nLanguage: ${widget.language}\nSection: ${location.text.trim()}\n\n${description.text.trim()}\n\n(Screenshots can be attached in your email app.)';
+    final appPlatform = Platform.isWindows ? 'Windows' : Platform.isAndroid ? 'Android' : 'Desktop';
+    final subject = category == 'bug'
+        ? 'MafiFlow ($appPlatform) - Bug report'
+        : 'MafiFlow ($appPlatform) - Feature suggestion';
+    final body = 'MafiFlow ($appPlatform)\nLanguage: ${widget.language}\nSection: ${category == 'bug' ? location.text.trim() : 'Feature suggestion'}\n\n${description.text.trim()}\n\n(Screenshots can be attached in your email app.)';
     final uri=Uri(scheme:'mailto',path:'mafistudio.dev@gmail.com',query:Uri(queryParameters:{'subject':subject,'body':body}).query);
     try {
       if(!await launchUrl(uri,mode:LaunchMode.externalApplication))throw StateError('Email app unavailable');
@@ -1229,9 +1252,23 @@ class _MafiHelpCenterState extends State<MafiHelpCenter> {
     final theme=Theme.of(context);
     return Scaffold(appBar:AppBar(title:Text(t('helpCenter'))),body:ListView(padding:const EdgeInsets.all(16),children:[
       Card(child:Column(children:[
-        ListTile(leading:const Icon(Icons.bug_report_outlined),title:Text(t('reportBug')),trailing:const Icon(Icons.chevron_right),onTap:()=>setState((){category='bug';description.clear();location.clear();})),
+        ListTile(
+          key: const Key('help-report-bug'),
+          leading: const Icon(Icons.bug_report_outlined),
+          title: Text(t('reportBug')),
+          trailing: Icon(category == 'bug' ? Icons.expand_less : Icons.chevron_right),
+          selected: category == 'bug',
+          onTap: () => _toggleCategory('bug'),
+        ),
         const Divider(height:1),
-        ListTile(leading:const Icon(Icons.lightbulb_outline),title:Text(t('suggestFeature')),trailing:const Icon(Icons.chevron_right),onTap:()=>setState((){category='idea';description.clear();location.clear();})),
+        ListTile(
+          key: const Key('help-suggest-feature'),
+          leading: const Icon(Icons.lightbulb_outline),
+          title: Text(t('suggestFeature')),
+          trailing: Icon(category == 'idea' ? Icons.expand_less : Icons.chevron_right),
+          selected: category == 'idea',
+          onTap: () => _toggleCategory('idea'),
+        ),
       ])),
       if(category!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
         Text(category=='bug'?t('reportBug'):t('suggestFeature'),style:theme.textTheme.titleMedium),
