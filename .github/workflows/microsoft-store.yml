@@ -34,7 +34,7 @@ jobs:
       - name: Generar paquete Microsoft Store
         shell: pwsh
         run: |
-          dart run msix:create --store --display-name "MafiFlow" --identity-name "Mafistudio.MafiFlow" --publisher "CN=728E4776-BB76-436A-88FF-F627802F7887" --publisher-display-name "Mafistudio" --version "1.5.9.0"
+          dart run msix:create --store --display-name "MafiFlow" --identity-name "Mafistudio.MafiFlow" --publisher "CN=728E4776-BB76-436A-88FF-F627802F7887" --publisher-display-name "Mafistudio" --version "1.5.10.0"
           if ($LASTEXITCODE -ne 0) {
             throw "No se pudo generar el paquete MSIX"
           }
