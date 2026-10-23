@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string] $PackagePath)
+param([Parameter(Mandatory=$true)][string] $PackagePath, [string] $ExpectedExePath = '')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -33,7 +33,11 @@ public static class MafiIconVerifier {
      if(BitConverter.ToUInt16(group,4)!=count) throw new Exception("ICO frame count differs");
      for(int i=0;i<count;i++) {
        int e=6+i*16,g=6+i*14;
-       for(int j=0;j<12;j++) if(expected[e+j]!=group[g+j]) throw new Exception("ICO frame metadata differs");
+       // RC normalizes PNG ICO planes from 0 to 1; image bytes must still match exactly.
+       for(int j=0;j<12;j++) {
+         if(j==4 || j==5) continue;
+         if(expected[e+j]!=group[g+j]) throw new Exception("ICO frame metadata differs");
+       }
        int len=BitConverter.ToInt32(expected,e+8), offset=BitConverter.ToInt32(expected,e+12);
        var actual=Read(h,BitConverter.ToUInt16(group,g+12),3);
        if(!actual.SequenceEqual(expected.Skip(offset).Take(len))) throw new Exception("Executable contains a different icon");
@@ -58,9 +62,10 @@ try {
     [xml] $manifest = [Text.Encoding]::UTF8.GetString((Read-Entry 'AppxManifest.xml'))
     if ($manifest.Package.Identity.Name -cne 'Mafistudio.MafiFlow' -or
         $manifest.Package.Identity.Publisher -cne 'CN=728E4776-BB76-436A-88FF-F627802F7887' -or
-        $manifest.Package.Identity.Version -ne '1.5.9.0' -or
+        $manifest.Package.Identity.Version -ne '1.5.10.0' -or
         $manifest.Package.Properties.PublisherDisplayName -cne 'Mafistudio') { throw 'Identidad o version incorrecta' }
     if ($manifest.Package.Applications.Application.Executable -cne 'MafiFlow.exe') { throw 'Ejecutable incorrecto' }
+    if ($manifest.Package.Applications.Application.Id -cne 'mafiflow') { throw 'Application Id distinto al instalado: debe ser mafiflow' }
     $visual = $manifest.Package.Applications.Application.VisualElements
     foreach ($reference in @($manifest.Package.Properties.Logo, $visual.Square44x44Logo,
         $visual.Square150x150Logo, $visual.DefaultTile.Square71x71Logo,
@@ -78,13 +83,20 @@ try {
         $checked++
     }
     $null = Read-Entry 'resources.pri'
-    [IO.File]::WriteAllBytes($exeTemp, (Read-Entry 'MafiFlow.exe'))
+    [byte[]] $packagedExe = Read-Entry 'MafiFlow.exe'
+    if (!$ExpectedExePath) { $ExpectedExePath = Join-Path $projectRoot 'build/windows/x64/runner/Release/MafiFlow.exe' }
+    [IO.File]::WriteAllBytes($exeTemp, $packagedExe)
+    $releaseHash = (Get-FileHash -LiteralPath $ExpectedExePath -Algorithm SHA256).Hash
+    if ((Get-FileHash -LiteralPath $exeTemp -Algorithm SHA256).Hash -cne $releaseHash) {
+        throw 'El EXE dentro del MSIX no coincide con el EXE de Release'
+    }
     $frames = [MafiIconVerifier]::Check($exeTemp, (Join-Path $projectRoot 'assets/MafiFlow.ico'))
     $report = [ordered]@{
         package = [IO.Path]::GetFileName($PackagePath)
         sha256 = (Get-FileHash $PackagePath -Algorithm SHA256).Hash
-        identity = 'Mafistudio.MafiFlow'; version = '1.5.9.0'
+        identity = 'Mafistudio.MafiFlow'; version = '1.5.10.0'
         packagedLogoFilesVerified = $checked; embeddedExecutableIconFramesVerified = $frames
+        packagedExecutableMatchesRelease = $true
         status = 'PASS'; runtimeTested = $false; storeCertified = $false
     }
     $report | ConvertTo-Json | Set-Content -LiteralPath ($PackagePath + '.verification.json') -Encoding utf8

@@ -21,9 +21,12 @@ try {
     New-Item -ItemType Directory -Force -Path (Split-Path $targetIcon) | Out-Null
     Copy-Item -LiteralPath $icon -Destination $targetIcon -Force
 
-    $rcPath = 'windows/runner/Runner.rc'
+    if ((Get-FileHash $icon).Hash -ne (Get-FileHash $targetIcon).Hash) {
+        throw 'El icono de runner no coincide con assets/MafiFlow.ico'
+    }
+    $rcPath = 'windows/runner/Runner.rc' 
     $rc = Get-Content -LiteralPath $rcPath -Raw
-    $rc = [regex]::Replace($rc, '(?m)^\s*IDI_APP_ICON\s+ICON\s+[^\r\n]+', 'IDI_APP_ICON ICON "resources\app_icon.ico"')
+    $rc = [regex]::Replace($rc, '(?m)^\s*IDI_APP_ICON\s+ICON\s+[^\r\n]+', 'IDI_APP_ICON ICON "resources\\app_icon.ico"')
     if ($rc -notmatch 'IDI_APP_ICON\s+ICON') { throw 'Falta recurso IDI_APP_ICON' }
     $rc = [regex]::Replace($rc, '(VALUE\s+"(?:FileDescription|ProductName|InternalName)"\s*,\s*)"[^"]*"', '${1}"MafiFlow"')
     $rc = [regex]::Replace($rc, '(VALUE\s+"OriginalFilename"\s*,\s*)"[^"]*"', '${1}"MafiFlow.exe"')

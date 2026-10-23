@@ -1,4 +1,4 @@
-﻿# MafiFlow - Generador de MSIX para Microsoft Store
+# MafiFlow - Generador de MSIX para Microsoft Store
 # Requiere Windows 10/11 + Windows SDK (MakeAppx.exe)
 # Usa siempre la compilacion mas reciente del proyecto Flutter corregido.
 [CmdletBinding()]
@@ -16,7 +16,7 @@ param(
     [string] $PublisherDisplayName = 'Mafistudio',
 
     [ValidatePattern('^[1-9][0-9]{0,4}\.[0-9]{1,5}\.[0-9]{1,5}\.0$')]
-    [string] $Version = '1.5.9.0',
+    [string] $Version = '1.5.10.0',
 
     [string] $OutputPath = '',
 
@@ -50,6 +50,7 @@ if ([string]::IsNullOrWhiteSpace($ReleaseDirectory)) {
 }
 $source = [System.IO.Path]::GetFullPath($ReleaseDirectory)
 $assets = Join-Path $projectRoot 'store_assets'
+& (Join-Path $PSScriptRoot 'Verificar-Icono-Exe.ps1') -ExePath (Join-Path $source 'MafiFlow.exe')
 if (!(Test-Path -LiteralPath $source -PathType Container)) {
     throw 'No existe la carpeta Release compilada. Primero ejecuta flutter build windows --release.'
 }
@@ -129,7 +130,7 @@ try {
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
   <Applications>
-    <Application Id="MafiFlow" Executable="MafiFlow.exe"
+    <Application Id="mafiflow" Executable="MafiFlow.exe"
         uap10:RuntimeBehavior="packagedClassicApp"
         uap10:TrustLevel="mediumIL">
       <uap:VisualElements DisplayName="MafiFlow"
