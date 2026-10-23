@@ -1,0 +1,14 @@
+{
+  "packageVersion": "1.5.10.0",
+  "nativeIconVerifierAcceptsOfficialTenFrames": true,
+  "nativeIconVerifierRejectsFlutter": true,
+  "logoVerifierAcceptsOfficialFixture": true,
+  "logoVerifierRejectsFlutter": true,
+  "incorrectVersionRejected": true,
+  "powershellSyntax": "PASS",
+  "flutterBuildExecuted": false,
+  "workflowExecutedOnGitHub": false,
+  "installationTested": false,
+  "pngComparison": "approximate visual similarity",
+  "icoImageComparison": "exact image bytes"
+}

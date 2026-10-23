@@ -1,0 +1,36 @@
+MafiFlow — corrección del workflow MSIX
+
+CAUSA CONFIRMADA EN LOS YAML PROPORCIONADOS
+El workflow del EXE copia assets/MafiFlow.ico después de flutter create. El workflow de MSIX proporcionado no incluye ese paso. Cada job tiene su propia máquina; el MSIX no recibe automáticamente los archivos del job del EXE. Además, msix:create compila Windows por defecto y, si tampoco hay msix_config.logo_path en pubspec.yaml, genera los logos predeterminados de Flutter.
+
+QUÉ HACER
+1. Extrae este parche. Contiene solo el workflow MSIX, tres scripts auxiliares y los dos recursos oficiales; no contiene lib/main.dart ni cambia funcionalidades de la aplicación.
+2. Sube tools/ y los dos archivos de assets/ a las mismas rutas en tu repositorio.
+3. Sustituye EL CONTENIDO de tu workflow MSIX actual por el archivo .github/workflows/microsoft-store.yml de este parche. Si tu workflow tiene otro nombre de archivo, puedes conservar ese nombre. Evita dejar el workflow anterior activo junto al nuevo. El workflow del EXE que ya funciona puede conservarse.
+4. Mantén name: mafiflow en pubspec.yaml, para conservar Application Id mafiflow. Identidad y Publisher de Store permanecen iguales. La versión del MSIX es 1.5.10.0; debe superar la máxima que tengas publicada en Partner Center.
+5. Ejecuta el workflow MSIX corregido. Descarga el artefacto MafiFlow-MicrosoftStore-MSIX-1.5.10.0-LOGO-CORRECTO. Dentro estará MafiFlow_Store_x64_1.5.10.0.msix, su informe verification.json y cuatro previews PNG. Pásame ese MSIX para comprobar el resultado final antes de publicarlo.
+
+ORDEN CORREGIDO
+clean -> create Windows -> dependencias -> branding ICO/Runner.rc -> flutter build windows -> verificar icono del EXE -> msix:create --build-windows false --logo-path assets/MafiFlow-official.png -> comprobar EXE y logos dentro del MSIX.
+
+El logo PNG para MSIX y el ICO nativo se configuran por separado. Se conserva la herramienta msix usada en tu YAML y se fija msix 3.18.0. No se usa la ruta alternativa MakeAppx de las primeras entregas.
+
+El nombre de artefacto 1.5.9.0 en tu YAML era solo una etiqueta: no determina la versión interna. El archivo recibido antes sí declaró internamente 1.5.9.0; por ello no era el resultado esperado de una ejecución efectiva con --version 1.5.10.0.
+
+VALIDACIÓN REALIZADA
+- Sintaxis de los tres scripts PowerShell: correcta.
+- Recurso nativo de prueba compilado con el ICO oficial: acepta 10 resoluciones de imagen exactas.
+- EXE con Flutter: rechazado.
+- Paquete ZIP de prueba con logo oficial: aceptado.
+- Paquete ZIP de prueba con PNG Flutter: rechazado (distancia visual 43.77, límite 20).
+- Versión incorrecta: rechazada.
+
+Las pruebas del verificador usan fixtures, no una compilación Flutter ni una aplicación instalable. La comparación del ICO es exacta en los datos de las imágenes; la comparación visual de los cuatro PNG es aproximada y queda identificada como tal en el informe. Se entregan las vistas previas para inspección visual. No se valida certificación Store ni instalación con estas comprobaciones.
+
+Flutter no está disponible aquí: este workflow NO se ha ejecutado en GitHub Actions ni se ha probado un nuevo build completo de MafiFlow. El workflow se detiene antes de publicar el artefacto si sus comprobaciones fallan. Este workflow solo crea un artefacto descargable: no publica en Microsoft Store.
+
+Fuentes primarias:
+https://pub.dev/packages/msix
+https://github.com/YehudaKremer/msix/blob/main/lib/msix.dart
+https://github.com/YehudaKremer/msix/blob/main/lib/src/assets.dart
+https://github.com/YehudaKremer/msix/blob/main/lib/src/appx_manifest.dart
