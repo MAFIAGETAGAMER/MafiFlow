@@ -1,4 +1,4 @@
-name: MafiFlow - Microsoft Store MSIX
+name: MafiFlow - Microsoft Store MSIX CORREGIDO
 
 on:
   workflow_dispatch:
@@ -9,7 +9,9 @@ permissions:
 jobs:
   build-msix:
     runs-on: windows-latest
-
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - name: Descargar proyecto
         uses: actions/checkout@v4
@@ -18,30 +20,60 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
-      - name: Activar Windows
-        run: flutter config --enable-windows-desktop
-
-      - name: Crear proyecto Windows
-        run: flutter create --platforms=windows .
-
-      - name: Instalar dependencias
-        run: flutter pub get
-
-      - name: Instalar herramienta MSIX
-        run: flutter pub add --dev msix
-
-      - name: Generar paquete Microsoft Store
-        shell: pwsh
+      - name: Limpiar y generar Windows
         run: |
-          dart run msix:create --store --display-name "MafiFlow" --identity-name "Mafistudio.MafiFlow" --publisher "CN=728E4776-BB76-436A-88FF-F627802F7887" --publisher-display-name "Mafistudio" --version "1.5.10.0"
-          if ($LASTEXITCODE -ne 0) {
-            throw "No se pudo generar el paquete MSIX"
-          }
+          flutter clean
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter clean' }
+          flutter config --enable-windows-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo activar Windows' }
+          flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo generar Windows' }
 
-      - name: Guardar MSIX
+      - name: Instalar dependencias y herramienta MSIX
+        run: |
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter pub get' }
+          flutter pub add --dev msix:3.18.0
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo instalar msix' }
+
+      - name: Aplicar logo nativo y compilar una sola vez
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path -LiteralPath 'assets/MafiFlow-official.png')) { throw 'Falta assets/MafiFlow-official.png' }
+          & ./tools/Branding-Windows.ps1
+          flutter build windows --release
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo compilar Windows' }
+          & ./tools/Verificar-Icono-Exe.ps1
+
+      - name: Generar MSIX con el mismo EXE y logo oficial
+        run: |
+          $msixArgs = @(
+            'run', 'msix:create',
+            '--store',
+            '--build-windows', 'false',
+            '--architecture', 'x64',
+            '--display-name', 'MafiFlow',
+            '--identity-name', 'Mafistudio.MafiFlow',
+            '--publisher', 'CN=728E4776-BB76-436A-88FF-F627802F7887',
+            '--publisher-display-name', 'Mafistudio',
+            '--version', '1.5.10.0',
+            '--logo-path', 'assets/MafiFlow-official.png',
+            '--trim-logo', 'false',
+            '--output-path', 'dist',
+            '--output-name', 'MafiFlow_Store_x64_1.5.10.0'
+          )
+          & dart @msixArgs
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo generar MSIX' }
+          & ./tools/Verificar-MSIX-Generado.ps1 -PackagePath 'dist/MafiFlow_Store_x64_1.5.10.0.msix'
+
+      - name: Guardar MSIX verificado
         uses: actions/upload-artifact@v4
         with:
-          name: MafiFlow-MicrosoftStore-MSIX-1.5.9.0
-          path: build/windows/**/*.msix
+          name: MafiFlow-MicrosoftStore-MSIX-1.5.10.0-LOGO-CORRECTO
+          path: |
+            dist/MafiFlow_Store_x64_1.5.10.0.msix
+            dist/*.verification.json
+            dist/preview-*.png
           if-no-files-found: error
