@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory=$true)][string] $PackagePath,
     [string] $ExpectedExePath = '',
-    [string] $ExpectedVersion = '1.5.10.0'
+    [string] $ExpectedVersion = '1.5.11.0'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

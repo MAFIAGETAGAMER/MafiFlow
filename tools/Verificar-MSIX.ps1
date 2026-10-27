@@ -62,7 +62,7 @@ try {
     [xml] $manifest = [Text.Encoding]::UTF8.GetString((Read-Entry 'AppxManifest.xml'))
     if ($manifest.Package.Identity.Name -cne 'Mafistudio.MafiFlow' -or
         $manifest.Package.Identity.Publisher -cne 'CN=728E4776-BB76-436A-88FF-F627802F7887' -or
-        $manifest.Package.Identity.Version -ne '1.5.10.0' -or
+        $manifest.Package.Identity.Version -ne '1.5.11.0' -or
         $manifest.Package.Properties.PublisherDisplayName -cne 'Mafistudio') { throw 'Identidad o version incorrecta' }
     if ($manifest.Package.Applications.Application.Executable -cne 'MafiFlow.exe') { throw 'Ejecutable incorrecto' }
     if ($manifest.Package.Applications.Application.Id -cne 'mafiflow') { throw 'Application Id distinto al instalado: debe ser mafiflow' }
@@ -94,7 +94,7 @@ try {
     $report = [ordered]@{
         package = [IO.Path]::GetFileName($PackagePath)
         sha256 = (Get-FileHash $PackagePath -Algorithm SHA256).Hash
-        identity = 'Mafistudio.MafiFlow'; version = '1.5.10.0'
+        identity = 'Mafistudio.MafiFlow'; version = '1.5.11.0'
         packagedLogoFilesVerified = $checked; embeddedExecutableIconFramesVerified = $frames
         packagedExecutableMatchesRelease = $true
         status = 'PASS'; runtimeTested = $false; storeCertified = $false

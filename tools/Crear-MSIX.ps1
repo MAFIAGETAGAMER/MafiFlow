@@ -16,7 +16,7 @@ param(
     [string] $PublisherDisplayName = 'Mafistudio',
 
     [ValidatePattern('^[1-9][0-9]{0,4}\.[0-9]{1,5}\.[0-9]{1,5}\.0$')]
-    [string] $Version = '1.5.10.0',
+    [string] $Version = '1.5.11.0',
 
     [string] $OutputPath = '',
 

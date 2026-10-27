@@ -1,0 +1,21 @@
+VERIFICACIÓN DEL PAQUETE FUENTE — MafiFlow 1.5.11 (Windows / Microsoft Store)
+
+Completado en el entorno de edición:
+- Comparación con el ZIP original de PC y con la actualización Android 1.0.10.
+- Conservación byte a byte de los iconos originales de MafiFlow y activos de Store.
+- Conservación del centro de ayuda y restauración de los cuadros de diálogo Windows para abrir/guardar JSON.
+- Migración de datos compatible con clave antigua mafiflow_data (sin eliminarla).
+- Perfiles independientes y formato de archivo JSON compatible entre Android y PC.
+- Archivos de cálculo, asistente local y perfiles idénticos a Android beta.
+- Versión MSIX y scripts de verificación actualizados a 1.5.11.0.
+- Revisión estática automatizada de 28 invariantes esenciales: todos PASS.
+- Workflows configurados para ejecutar flutter analyze y flutter test antes de compilar.
+
+Pendiente de hacer en GitHub Actions / Windows:
+- flutter pub get
+- flutter analyze y flutter test reales
+- flutter build windows --release
+- Generación/verificación de MafiFlow_Store_x64_1.5.11.0.msix
+- Pruebas manuales de upgrade in-place y conservación de datos; test de Store.
+
+No se generó MSIX localmente. Este ZIP entrega el proyecto y workflows; la versión a subir a Partner Center será el MSIX compilado por GitHub Actions después de superar pruebas.

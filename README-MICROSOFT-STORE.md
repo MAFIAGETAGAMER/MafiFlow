@@ -1,49 +1,45 @@
-# MafiFlow 1.5.9.0 — logo oficial y Microsoft Store
+# MafiFlow for Microsoft Store — 1.5.11.0
 
-Fuente base: MafiFlow_1.5.8_FORMULARIOS_CORREGIDOS_MSIX.zip.
-lib/main.dart y test/help_center_test.dart se conservan byte por byte; no se modificaron lógica financiera, formularios ni datos. Versión Flutter 1.5.9+25; paquete Store 1.5.9.0.
+This project is the **Windows source release**, ported from the Android 1.0.10 multi-profile beta, not a prebuilt or signed MSIX. The Windows-specific icon, Help Center and native `.json` file pickers are preserved.
 
-## Generar y descargar el paquete real
+## Changes
 
-1. Sube el contenido completo de MafiFlow-main al repositorio, incluyendo carpetas ocultas.
-2. Elimina el workflow antiguo .github/workflows/windows.yml del repositorio si todavía existe. Lo sustituye .github/workflows/microsoft-store.yml; conserva este único flujo para evitar compilaciones duplicadas.
-3. Abre Actions → Compilar MafiFlow Windows y Microsoft Store MSIX → Run workflow. También se ejecuta al hacer push a main. No requiere campos ni secretos de firma.
-4. Tras pasar análisis, pruebas y compilación, descarga MafiFlow-Microsoft-Store-MSIX-1.5.9. Dentro estarán el MSIX sin firmar y el informe *.verification.json.
-5. Sube el MSIX a la actualización de la aplicación existente en Partner Center. Este proyecto no publica automáticamente.
-6. Para el logo de la ficha, utiliza las imágenes de store_listing en los campos de logotipo correspondientes de Partner Center. Cambiar el paquete no garantiza que cambien los gráficos cargados por separado en la ficha. No uses StoreLogo.png de 50 px para un campo que pida 300 px.
+- Independent local profiles with separate transactions, recurring payments, initial balance, reserved savings, currency, locale, theme and advisor context/history.
+- One-time migration of previous `SharedPreferences` key `mafiflow_data` into `mafiflow_profiles_v1`. The old key is NOT removed; corrupted archives are not silently overwritten.
+- Period totals and available-balance calculation improvements, date parsing, backward/forward period navigation and periodic/resume schedule refresh.
+- Opening balance and accumulated transactions included in the generative AI context; helpful localized provider errors instead of HTML error pages.
+- Optional **Offline** summary; deterministic local calculations, **not** a generative AI. No network or API key needed.
+- Backup of ALL profiles to JSON (copied to clipboard and optionally saved as a Windows `.json` file); secret API keys are omitted. Import supports both legacy single-account JSON and version-1 multi-profile archives. The import confirmation replaces all profiles in the PC installation.
+- Multilingual changes in ES/EN/FR/DE/BN.
+- Windows Help Center forms and the official EXE + Store icon are kept intact.
 
-Identidad configurada:
-- Identity Name: Mafistudio.MafiFlow
-- Publisher: CN=728E4776-BB76-436A-88FF-F627802F7887
-- PublisherDisplayName: Mafistudio
-- DisplayName de la aplicación: MafiFlow
-- Version: 1.5.9.0, arquitectura x64
+## Microsoft Store packaging
 
-## Iconos
+The CI workflow `.github/workflows/microsoft-store.yml` builds on `windows-latest` when launched manually (**Actions → MafiFlow - Microsoft Store MSIX CORREGIDO → Run workflow**).
 
-assets/MafiFlow-official.png conserva el adjunto original. Se mantiene su proporción y transparencia, centrado sin recortar ni redibujar.
-assets/MafiFlow.ico: 16, 20, 24, 32, 40, 48, 64, 96, 128 y 256 px; se copia al recurso nativo IDI_APP_ICON antes de compilar.
-store_assets: 90 PNG para logos de paquete, menú Inicio y mosaicos, escalas hasta 400% y variantes targetsize/unplated/lightunplated. MakePri genera resources.pri antes de MakeAppx.
-store_listing: logos de 300, 150 y 71 px para la ficha.
-assets/logo.png (imagen interna de la aplicación) se conserva del ZIP original.
+1. Generates native Windows Flutter project (`flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .`).
+2. Installs dependencies, runs `flutter analyze` and `flutter test` (finance, profiles and the Windows Help Center regressions).
+3. Runs `tools/Branding-Windows.ps1` so the EXE uses the official MafiFlow icon, and builds a Release executable.
+4. Packages/validates `dist/MafiFlow_Store_x64_1.5.11.0.msix` and uploads it with the icon verification report as a GitHub Actions artifact.
 
-## Comprobaciones automáticas del paquete
+### IMPORTANT: Preserve existing Microsoft Store identity
 
-tools/Verificar-MSIX.ps1 abre el MSIX real, revisa identidad, versión, rutas del manifiesto y resources.pri. Compara por SHA-256 los 90 PNG empaquetados contra los assets oficiales y compara los diez recursos del icono de MafiFlow.exe con el ICO esperado. Si hay diferencias, el flujo falla antes de subir el artefacto MSIX. El informe no equivale a una prueba de ejecución o certificación Store.
+- Name: `Mafistudio.MafiFlow`
+- Publisher: `CN=728E4776-BB76-436A-88FF-F627802F7887`
+- Publisher display name: `Mafistudio`
+- Application Id: `mafiflow`
+- x64 version: `1.5.11.0` (Flutter `1.5.11+27`)
 
-Alternativa local, con Flutter, Visual Studio C++ y Windows SDK instalados:
+The Microsoft Store MSIX is prepared for Store signing and submission, **not** a locally signed standalone installer. Microsoft Store's Partner Center must confirm that this version is greater than the published one and all package identity fields match the existing listing. The original desktop installer/app must be updated **in place**, not uninstalled and reinstalled, to retain local finances.
 
-```powershell
-.\tools\Compilar-y-Empaquetar.ps1
-```
+## Release smoke test BEFORE publishing
 
-Resultado: dist/MafiFlow_Store_x64_1.5.9.0.msix. El paquete Store se entrega sin firma local.
+1. Keep a copy of the existing Store installation data and create a JSON backup if the old UI offers it. Upgrade over the same installed Store app; verify transactions, initial balance and payments still exist in **Profile 1**.
+2. Create a second profile with currency CUP. Enter its own starting balance and transactions, switch back and confirm absolutely no cross-account mixing.
+3. Change language/theme, restart Windows/app, check profile selection and data persistence.
+4. Compare 'Disponible' with `opening balance + all recorded income - all recorded expenses - reserved savings` for both profiles; test period navigation and dated recurring payments.
+5. Test offline advisor; test an authorized online provider including a 403 response in a supported environment. The offline feature does not evade geo-restrictions.
+6. Export multi-profile JSON to a file and import it into a *test installation only*; check amounts, currencies and that API keys were excluded.
+7. Verify icon on executable, Start menu and Store listing, and repeat Help Center accordion/form tests.
 
-## Validación realizada al preparar este ZIP
-
-- Sintaxis PowerShell y estructura de archivos revisadas.
-- MakePri y MakeAppx ejecutados con un EXE SINTÉTICO de prueba: manifiesto y empaquetado aceptados; 90 logos y diez recursos ICO verificados. Un PNG alterado fue rechazado correctamente. El paquete sintético no se incluye ni es una compilación de MafiFlow.
-- Integridad del ZIP, tamaños del ICO y preservación de archivos fuente comprobados; véase VALIDACION-1.5.9.json.
-- NO se ejecutaron flutter analyze, flutter test ni flutter build windows: Flutter no está instalado aquí. No se verificó ejecución, instalación, persistencia de datos ni certificación Microsoft Store. El flujo incluido debe completar esas etapas antes de distribuir la aplicación.
-
-Documentación usada: https://learn.microsoft.com/windows/apps/design/style/iconography/app-icon-construction y https://learn.microsoft.com/windows/uwp/app-resources/makepri-exe-command-options
+**Build verification limitation:** This archive has been inspected and checked structurally, but Flutter and Windows Store packaging tools are not installed in the authoring environment. No claim is made of successful `flutter analyze`, `flutter test`, real device validation, MSIX signing or Store acceptance until GitHub Actions and manual checks complete.
