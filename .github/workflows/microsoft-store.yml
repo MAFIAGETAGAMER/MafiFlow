@@ -58,22 +58,22 @@ jobs:
             '--identity-name', 'Mafistudio.MafiFlow',
             '--publisher', 'CN=728E4776-BB76-436A-88FF-F627802F7887',
             '--publisher-display-name', 'Mafistudio',
-            '--version', '1.5.10.0',
+            '--version', '1.5.11.0',
             '--logo-path', 'assets/MafiFlow-official.png',
             '--trim-logo', 'false',
             '--output-path', 'dist',
-            '--output-name', 'MafiFlow_Store_x64_1.5.10.0'
+            '--output-name', 'MafiFlow_Store_x64_1.5.11.0'
           )
           & dart @msixArgs
           if ($LASTEXITCODE -ne 0) { throw 'Fallo generar MSIX' }
-          & ./tools/Verificar-MSIX-Generado.ps1 -PackagePath 'dist/MafiFlow_Store_x64_1.5.10.0.msix'
+          & ./tools/Verificar-MSIX-Generado.ps1 -PackagePath 'dist/MafiFlow_Store_x64_1.5.11.0.msix'
 
       - name: Guardar MSIX verificado
         uses: actions/upload-artifact@v4
         with:
           name: MafiFlow-MicrosoftStore-MSIX-1.5.10.0-LOGO-CORRECTO
           path: |
-            dist/MafiFlow_Store_x64_1.5.10.0.msix
+            dist/MafiFlow_Store_x64_1.5.11.0.msix
             dist/*.verification.json
             dist/preview-*.png
           if-no-files-found: error
