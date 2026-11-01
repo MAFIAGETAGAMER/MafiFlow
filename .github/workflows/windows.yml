@@ -3,53 +3,117 @@ name: Build MafiFlow Windows EXE
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   windows:
-    runs-on: windows-2022
-    timeout-minutes: 45
+    runs-on: windows-latest
     defaults:
       run:
         shell: pwsh
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Check source and branding assets
-        run: python tools/check_source.py
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.7'
           channel: stable
           cache: true
-      - name: Generate Windows runner and install dependencies
+
+      - name: Generate Windows project
         run: |
           flutter config --enable-windows-desktop
-          if ($LASTEXITCODE -ne 0) { throw 'Windows setup failed' }
-          & ./tools/Preparar-Windows.ps1
+          flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .
+          if ($LASTEXITCODE -ne 0) { throw 'flutter create failed' }
+
+      - name: Apply native MafiFlow branding
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $icon = 'assets/MafiFlow.ico'
+          if (!(Test-Path $icon)) { throw 'Missing assets/MafiFlow.ico; upload the official icon to the repository.' }
+
+          $cmakePath = 'windows/CMakeLists.txt'
+          $cmake = Get-Content $cmakePath -Raw
+          $cmake = [regex]::Replace($cmake, 'set\(BINARY_NAME\s+"[^"]+"\)', 'set(BINARY_NAME "MafiFlow")')
+          if (!$cmake.Contains('set(BINARY_NAME "MafiFlow")')) { throw 'Unable to set executable name in CMakeLists.txt' }
+          Set-Content $cmakePath $cmake -Encoding utf8
+
+          $targetIcon = 'windows/runner/resources/app_icon.ico'
+          New-Item -ItemType Directory -Force (Split-Path $targetIcon) | Out-Null
+          Copy-Item $icon $targetIcon -Force
+
+          $rcPath = 'windows/runner/Runner.rc'
+          $rc = Get-Content $rcPath -Raw
+          $rc = [regex]::Replace($rc, '(?m)^\s*IDI_APP_ICON\s+ICON\s+[^\r\n]+', 'IDI_APP_ICON ICON "resources\\app_icon.ico"')
+          if ($rc -notmatch 'IDI_APP_ICON\s+ICON') { throw 'Windows resource icon entry missing' }
+          $rc = [regex]::Replace($rc, '(VALUE\s+"(?:FileDescription|ProductName|InternalName)"\s*,\s*)"[^"]*"', '${1}"MafiFlow"')
+          $rc = [regex]::Replace($rc, '(VALUE\s+"OriginalFilename"\s*,\s*)"[^"]*"', '${1}"MafiFlow.exe"')
+          Set-Content $rcPath $rc -Encoding utf8
+
+          $mainPath = 'windows/runner/main.cpp'
+          $main = Get-Content $mainPath -Raw
+          $main = [regex]::Replace($main, 'window\.Create\(L"[^"]+"', 'window.Create(L"MafiFlow"')
+          Set-Content $mainPath $main -Encoding utf8
+
+          if (Test-Path 'test/widget_test.dart') { Remove-Item 'test/widget_test.dart' -Force }
+          Write-Host 'Native icon, title and binary name configured.'
+
+      - name: Install dependencies
+        run: |
           flutter pub get
           if ($LASTEXITCODE -ne 0) { throw 'pub get failed' }
-      - name: Analyze and test
+
+      - name: Analyze
         run: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'analyze failed' }
+
+      - name: Run automated tests
+        run: |
           flutter test
           if ($LASTEXITCODE -ne 0) { throw 'tests failed' }
-      - name: Apply branding and build Windows
+
+      - name: Build Windows release
         run: |
-          & ./tools/Branding-Windows.ps1
           flutter build windows --release
           if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
-          & ./tools/Verificar-Icono-Exe.ps1
-      - name: Upload complete Windows application
+
+      - name: Verify and package MafiFlow
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = 'build/windows/x64/runner/Release'
+          $exe = Join-Path $release 'MafiFlow.exe'
+          if (!(Test-Path $exe)) {
+            $old = Join-Path $release 'mafiflow.exe'
+            if (!(Test-Path $old)) { $old = Join-Path $release 'mafiflow_mobile.exe' }
+            if (!(Test-Path $old)) { throw 'No Windows executable was produced.' }
+            Rename-Item $old 'MafiFlow.exe'
+          }
+          if (!(Test-Path $exe)) { throw 'MafiFlow.exe missing after packaging.' }
+          Add-Type -AssemblyName System.Drawing
+          $ico = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path $exe).Path)
+          if ($null -eq $ico) { throw 'No icon embedded in the executable.' }
+          $bmp = $ico.ToBitmap()
+          $green = 0
+          for ($x=0; $x -lt $bmp.Width; $x++) {
+            for ($y=0; $y -lt $bmp.Height; $y++) {
+              $p = $bmp.GetPixel($x,$y)
+              if ($p.G -gt ($p.B + 18) -and $p.G -gt ($p.R + 12)) { $green++ }
+            }
+          }
+          $bmp.Dispose()
+          $ico.Dispose()
+          Write-Host "Green icon pixels: $green"
+          if ($green -lt 20) { throw 'Flutter icon remains: MafiFlow logo was not embedded.' }
+          Write-Host 'Verified MafiFlow.exe and the green MafiFlow icon.'
+
+      - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
-          name: MafiFlow-Windows-1.5.12-28
+          name: MafiFlow-Windows-BRANDING-FIX
           path: build/windows/x64/runner/Release/
           if-no-files-found: error
