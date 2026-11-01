@@ -1,5 +1,5 @@
-MafiFlow PC 1.5.12+28 / MSIX 1.5.12.0
+MafiFlow PC 1.5.12+28 / MSIX 1.5.12.0 - revision de empaquetado R2
 
-Consulta ACTUALIZACION_PC_1.5.12.md para los cambios, instrucciones de GitHub y limites de validacion.
+Consulta CORRECCION_MSIX_R2.md y sustituye juntos .github/workflows y tools con el resto del proyecto.
 
-Este ZIP contiene el proyecto completo actualizado, no solo un parche y no un MSIX compilado.
+El ZIP contiene fuentes, no un MSIX compilado.

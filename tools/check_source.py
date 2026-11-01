@@ -34,13 +34,14 @@ for path in (root / 'test').glob('*_test.dart'):
     assert 'package:mafiflow_mobile/' not in path.read_text(encoding='utf-8')
 assert len(list((root / 'test').glob('*_test.dart'))) == 7
 workflow = (root / '.github/workflows/microsoft-store.yml').read_text(encoding='utf-8')
-assert workflow.index('flutter test') < workflow.index('flutter build windows --release') < workflow.index("'run', 'msix:create'")
-for marker in ["'--build-windows', 'false'", "'--version', '1.5.12.0'",
+assert workflow.index('flutter test') < workflow.index('flutter build windows --release') < workflow.index('& ./tools/Empaquetar-MSIX.ps1')
+packaging = (root / 'tools/Empaquetar-MSIX.ps1').read_text(encoding='utf-8')
+for marker in ["'--build-windows', 'false'", "'--version', $release.MsixVersion",
                "'--identity-name', 'Mafistudio.MafiFlow'",
                "'--publisher', 'CN=728E4776-BB76-436A-88FF-F627802F7887'",
                "'--logo-path', 'assets/MafiFlow-official.png'",
                'if-no-files-found: error', "flutter-version: '3.35.7'"]:
-    assert marker in workflow, marker
+    assert marker in (workflow + packaging), marker
 for name, expected in json.loads((root / 'tools/official_asset_hashes.json').read_text()).items():
     assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
 print('PASS: source wiring, Windows file pickers, Home/Settings layout, translations, version/Store identity, workflow order and official assets.')
