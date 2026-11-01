@@ -1,3 +1,7 @@
+# Entrega actual: Windows 1.5.12+28 / MSIX 1.5.12.0
+
+Consulta ACTUALIZACION_PC_1.5.12.md. Las notas siguientes describen la version anterior.
+
 # MafiFlow for Microsoft Store — 1.5.11.0
 
 This project is the **Windows source release**, ported from the Android 1.0.10 multi-profile beta, not a prebuilt or signed MSIX. The Windows-specific icon, Help Center and native `.json` file pickers are preserved.

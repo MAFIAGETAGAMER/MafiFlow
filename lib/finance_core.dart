@@ -19,6 +19,17 @@ DateTime? financeDate(dynamic raw) {
 bool _isIncome(dynamic type) => type == 'Ingreso mensual' || type == 'Ingreso extra';
 bool _isExpense(dynamic type) => type == 'Gasto' || type == 'Pago mensual';
 
+/// Correct spendable money by adjusting the existing base-balance mechanism.
+/// Reserved savings and all recorded income/expense transactions stay intact.
+/// Like editing the starting balance, this also changes historical balances.
+void correctAvailableBalance(Map<String, dynamic> data, double corrected) {
+  if (!corrected.isFinite) throw ArgumentError.value(corrected, 'corrected');
+  final snapshot = financialSnapshot(data);
+  final base = snapshot.openingBalance + (corrected - snapshot.available);
+  if (!base.isFinite) throw ArgumentError.value(corrected, 'corrected');
+  data['opening_balance'] = base;
+}
+
 class FinancialSnapshot {
   const FinancialSnapshot({
     required this.openingBalance, required this.totalIncome,
@@ -86,10 +97,14 @@ Starting balance (already held before the app): ${v.openingBalance.toStringAsFix
 All-time recorded income: ${v.totalIncome.toStringAsFixed(2)} $currency.
 All-time recorded expenses including recurring: ${v.totalExpenses.toStringAsFixed(2)} $currency.
 Reserved savings already deducted from spendable money: ${v.reservedSavings.toStringAsFixed(2)} $currency.
+Savings already owned when this profile was set up (part of starting balance, NOT new income): ${data['savings_opening_known'] == true ? "${financeAmount(data['savings_opening']).toStringAsFixed(2)} $currency" : "Not separately recorded for this older profile"}.
 CURRENT AVAILABLE BALANCE = starting balance + all-time income - all-time expenses - reserved savings = ${v.available.toStringAsFixed(2)} $currency.
 Current month income: ${v.periodIncome.toStringAsFixed(2)} $currency.
 Current month expenses: ${v.periodExpenses.toStringAsFixed(2)} $currency, of which recurring ${v.recurringExpenses.toStringAsFixed(2)} $currency.
 Current month reserved savings: ${v.periodSavings.toStringAsFixed(2)} $currency.
-Savings target: ${financeAmount(data['savings_goal']).toStringAsFixed(2)} $currency.
+Savings target for the active savings goal: ${financeAmount(data['savings_goal']).toStringAsFixed(2)} $currency.
+Progress of the current goal only: ${(max(0.0, v.reservedSavings - financeAmount(data['savings_goal_base']))).toStringAsFixed(2)} $currency.
+Goal baseline reserved from earlier goals: ${financeAmount(data['savings_goal_base']).toStringAsFixed(2)} $currency.
+Positive savings-history amounts mean reserves/deposits; negative amounts mean withdrawals, savings-funded purchases or corrections. Savings-funded purchases count as expenses but reduce reserved savings by the same amount and therefore must NOT lower available balance twice.
 Do not confuse current month net flow with accumulated available balance. No live bank integration or automatic exchange rate conversion.''';
 }

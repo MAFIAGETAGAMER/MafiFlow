@@ -106,6 +106,15 @@ class ProfileArchive {
     profiles.firstWhere((p) => p.id == id).name = name.trim();
   }
 
+  /// Erase only the active profile's data; retain the profile identity and
+  /// every other profile. Clearing data instead of replacing the map keeps
+  /// current widget references aligned until the onboarding screen appears.
+  void resetActive(Map<String, dynamic> defaults) {
+    active.data
+      ..clear()
+      ..addAll(_copy(defaults));
+  }
+
   void remove(String id) {
     if (profiles.length == 1) throw StateError('Last profile cannot be deleted');
     profiles.removeWhere((p) => p.id == id);

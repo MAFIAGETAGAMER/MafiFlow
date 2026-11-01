@@ -11,27 +11,35 @@ String localFinancialReply(Map<String, dynamic> data, String language) {
   String m(double value) => '${value.toStringAsFixed(2)} $currency';
   final lines = <String, List<String>>{
     'es': ['Resumen local (sin IA generativa):', 'Saldo inicial', 'Disponible ahora',
-      'Ingresos de este mes', 'Gastos de este mes', 'Ahorro reservado',
+      'Ingresos de este mes', 'Gastos de este mes', 'Ahorro reservado', 'Ahorro inicial',
       'No tengo acceso a tu banco. Estos datos provienen exclusivamente de este perfil de MafiFlow.'],
     'en': ['Local summary (not generative AI):', 'Starting balance', 'Currently available',
-      'Income this month', 'Expenses this month', 'Reserved savings',
+      'Income this month', 'Expenses this month', 'Reserved savings', 'Starting savings',
       'I cannot access your bank. These figures only use this MafiFlow profile.'],
     'fr': ['Bilan local (sans IA générative) :', 'Solde initial', 'Solde disponible',
-      'Revenus du mois', 'Dépenses du mois', 'Épargne réservée',
+      'Revenus du mois', 'Dépenses du mois', 'Épargne réservée', 'Épargne initiale',
       'Je ne peux pas accéder à votre banque. Ces données proviennent uniquement de ce profil.'],
     'de': ['Lokale Übersicht (keine generative KI):', 'Anfangssaldo', 'Aktuell verfügbar',
-      'Einnahmen dieses Monats', 'Ausgaben dieses Monats', 'Zurückgelegte Ersparnisse',
+      'Einnahmen dieses Monats', 'Ausgaben dieses Monats', 'Zurückgelegte Ersparnisse', 'Anfängliche Ersparnisse',
       'Kein Bankzugriff. Die Zahlen stammen nur aus diesem MafiFlow-Profil.'],
     'bn': ['লোকাল সারাংশ (জেনারেটিভ এআই নয়):', 'প্রারম্ভিক ব্যালেন্স', 'বর্তমান অবশিষ্ট',
-      'এই মাসের আয়', 'এই মাসের খরচ', 'সংরক্ষিত সঞ্চয়',
+      'এই মাসের আয়', 'এই মাসের খরচ', 'সংরক্ষিত সঞ্চয়', 'প্রারম্ভিক সঞ্চয়',
       'ব্যাংক অ্যাক্সেস নেই। শুধুমাত্র এই MafiFlow প্রোফাইলের তথ্য ব্যবহার করা হয়েছে।'],
   };
   final t = lines[language] ?? lines['es']!;
+  const missingOpening = {
+    'es':'no registrado', 'en':'not recorded', 'fr':'non renseigné',
+    'de':'nicht erfasst', 'bn':'রেকর্ড করা হয়নি',
+  };
+  final initialSavings = data['savings_opening_known'] == true
+      ? m(financeAmount(data['savings_opening']))
+      : (missingOpening[language] ?? missingOpening['es']!);
   return '${t[0]}\n\n${t[1]}: ${m(metrics.openingBalance)}\n'
       '${t[2]}: ${m(metrics.available)}\n'
       '${t[3]}: ${m(metrics.periodIncome)}\n'
       '${t[4]}: ${m(metrics.periodExpenses)}\n'
-      '${t[5]}: ${m(metrics.reservedSavings)}\n\n${t[6]}';
+      '${t[5]}: ${m(metrics.reservedSavings)}\n'
+      '${t[6]}: $initialSavings\n\n${t[7]}';
 }
 
 String advisorHttpError(int status, String language) {

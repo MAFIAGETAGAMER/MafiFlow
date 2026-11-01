@@ -1,7 +1,9 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
+import 'category_order.dart';
+import 'advisor_messages.dart';
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'finance_core.dart';
+import 'savings_operations.dart';
 import 'local_advisor.dart';
 import 'profile_archive.dart';
 
@@ -19,7 +22,9 @@ const expenseRed = Color(0xFFE76F6F);
 const defaults = <String, dynamic>{
   'monthly_income': 0.0, 'rent': 0.0, 'savings_goal': 0.0,
   'income_frequency': 'monthly', 'income_start_date': '', 'income_processed_dates': [],
-  'monthly_savings': 0.0, 'savings_saved': 0.0, 'savings_processed_months': [], 'savings_history': [],
+  'monthly_savings': 0.0, 'savings_saved': 0.0, 'savings_opening': 0.0,
+  'savings_goal_base': 0.0, 'savings_opening_known': false,
+  'savings_processed_months': [], 'savings_history': [],
   'transactions': [], 'monthly_payments': [], 'processed_months': [],
   'custom_categories': [], 'hidden_categories': [], 'ai_provider': 'OpenAI', 'ai_api_key': '',
   'ai_model': '', 'ai_base_url': '', 'ai_history': [], 'setup_completed': false, 'currency': 'USD', 'opening_balance': 0.0,
@@ -30,10 +35,78 @@ const labels = <String, Map<String,String>>{
   'en': {'home':'Home','moves':'Transactions','monthly':'Payments','stats':'Statistics','ai':'AI Advisor','settings':'Settings','balance':'Available','income':'Income','expenses':'Expenses','savings':'Savings goal','add':'Add','delete':'Delete','save':'Save','category':'Category','amount':'Amount','note':'Note','name':'Name','send':'Send','wait':'AI is preparing your response','providerWait':'Waiting for provider response','noData':'No data yet','monthIncome':'Automatic recurring income','provider':'AI provider','model':'Model','key':'API key','import':'Import JSON from clipboard','export':'Copy JSON backup','confirm':'Replace every profile and its data on this PC?','yes':'Replace','cancel':'Cancel','settingsSaved':'Settings saved','invalid':'Invalid amount or format','type':'Type','extra':'Extra income','expense':'Expense','payment':'Recurring payment','active':'Active','paused':'Paused','language':'Language','theme':'Theme','dark':'Dark','light':'Light','newPayment':'New recurring payment','noKey':'Configure your API key in Settings.','custom':'Custom URL','goal':'Savings goal','error':'Error','loading':'Connecting','backup':'Backup copied (without API key)','imported':'Data imported','recents':'Recent transactions','calculator':'Calculator'}
 };
 const additionalLabels=<String,Map<String,String>>{
-'fr':{'home':'Accueil','moves':'Mouvements','monthly':'Paiements','stats':'Statistiques','ai':'Conseiller IA','settings':'Paramètres','balance':'Disponible','income':'Revenus','expenses':'Dépenses','savings':'Objectif d’épargne','add':'Ajouter','delete':'Supprimer','save':'Enregistrer','category':'Catégorie','amount':'Montant','note':'Note','name':'Nom','send':'Envoyer','wait':'L’IA prépare votre réponse','providerWait':'En attente du fournisseur','noData':'Aucune donnée','monthIncome':'Revenu récurrent automatique','provider':'Fournisseur IA','model':'Modèle','key':'Clé API','import':'Importer JSON','export':'Copier la sauvegarde JSON','confirm':'Remplacer tous les profils et leurs données sur ce PC ?','yes':'Remplacer','cancel':'Annuler','settingsSaved':'Paramètres enregistrés','invalid':'Montant invalide','type':'Type','extra':'Revenu supplémentaire','expense':'Dépense','payment':'Paiement récurrent','active':'Actif','paused':'Suspendu','language':'Langue','theme':'Thème','dark':'Sombre','light':'Clair','newPayment':'Nouveau paiement récurrent','noKey':'Configurez la clé API dans les paramètres.','custom':'URL personnalisée','goal':'Objectif d’épargne','error':'Erreur','loading':'Connexion','backup':'Sauvegarde copiée','imported':'Données importées','recents':'Dernières opérations'},
-'de':{'home':'Start','moves':'Buchungen','monthly':'Zahlungen','stats':'Statistiken','ai':'KI-Berater','settings':'Einstellungen','balance':'Verfügbar','income':'Einnahmen','expenses':'Ausgaben','savings':'Sparziel','add':'Hinzufügen','delete':'Löschen','save':'Speichern','category':'Kategorie','amount':'Betrag','note':'Notiz','name':'Name','send':'Senden','wait':'KI bereitet die Antwort vor','providerWait':'Warte auf Anbieter','noData':'Noch keine Daten','monthIncome':'Automatisches wiederkehrendes Einkommen','provider':'KI-Anbieter','model':'Modell','key':'API-Schlüssel','import':'JSON importieren','export':'JSON-Sicherung kopieren','confirm':'Alle Profile und deren Daten auf diesem PC ersetzen?','yes':'Ersetzen','cancel':'Abbrechen','settingsSaved':'Gespeichert','invalid':'Ungültiger Betrag','type':'Typ','extra':'Zusätzliches Einkommen','expense':'Ausgabe','payment':'Wiederkehrende Zahlung','active':'Aktiv','paused':'Pausiert','language':'Sprache','theme':'Design','dark':'Dunkel','light':'Hell','newPayment':'Neue wiederkehrende Zahlung','noKey':'API-Schlüssel in Einstellungen eintragen.','custom':'Eigene URL','goal':'Sparziel','error':'Fehler','loading':'Verbinden','backup':'Sicherung kopiert','imported':'Daten importiert','recents':'Letzte Buchungen'},
-'bn':{'home':'হোম','moves':'লেনদেন','monthly':'মাসিক পেমেন্ট','stats':'পরিসংখ্যান','ai':'এআই পরামর্শক','settings':'সেটিংস','balance':'অবশিষ্ট','income':'আয়','expenses':'খরচ','savings':'সঞ্চয়ের লক্ষ্য','add':'যোগ করুন','delete':'মুছুন','save':'সংরক্ষণ','category':'বিভাগ','amount':'পরিমাণ','note':'নোট','name':'নাম','send':'পাঠান','wait':'এআই উত্তর প্রস্তুত করছে','providerWait':'সেবাদাতার উত্তরের অপেক্ষায়','noData':'কোনো তথ্য নেই','monthIncome':'নিয়মিত আয়','provider':'এআই প্রদানকারী','model':'মডেল','key':'এপিআই কী','import':'JSON আমদানি','export':'JSON ব্যাকআপ কপি','confirm':'এই পিসির সব প্রোফাইল ও তথ্য বদলাবেন?','yes':'বদলান','cancel':'বাতিল','settingsSaved':'সেটিংস সংরক্ষিত','invalid':'ভুল পরিমাণ','type':'ধরন','extra':'অতিরিক্ত আয়','expense':'খরচ','payment':'নিয়মিত পেমেন্ট','active':'সক্রিয়','paused':'বন্ধ','language':'ভাষা','theme':'থিম','dark':'ডার্ক','light':'লাইট','newPayment':'নতুন নিয়মিত পেমেন্ট','noKey':'সেটিংসে এপিআই কী দিন।','custom':'কাস্টম URL','goal':'সঞ্চয়ের লক্ষ্য','error':'ত্রুটি','loading':'সংযোগ','backup':'ব্যাকআপ কপি হয়েছে','imported':'তথ্য আমদানি হয়েছে','recents':'সাম্প্রতিক লেনদেন'}
+'fr':{'home':'Accueil','moves':'Mouvements','monthly':'Paiements','stats':'Statistiques','ai':'Conseiller IA','settings':'Paramètres','balance':'Disponible','income':'Revenus','expenses':'Dépenses','savings':'Objectif d’épargne','add':'Ajouter','delete':'Supprimer','save':'Enregistrer','category':'Catégorie','amount':'Montant','note':'Note','name':'Nom','send':'Envoyer','wait':'L’IA prépare votre réponse','providerWait':'En attente du fournisseur','noData':'Aucune donnée','monthIncome':'Revenu récurrent automatique','provider':'Fournisseur IA','model':'Modèle','key':'Clé API','import':'Importer JSON','export':'Copier la sauvegarde JSON','confirm':'Remplacer toutes les données ?','yes':'Remplacer','cancel':'Annuler','settingsSaved':'Paramètres enregistrés','invalid':'Montant invalide','type':'Type','extra':'Revenu supplémentaire','expense':'Dépense','payment':'Paiement récurrent','active':'Actif','paused':'Suspendu','language':'Langue','theme':'Thème','dark':'Sombre','light':'Clair','newPayment':'Nouveau paiement récurrent','noKey':'Configurez la clé API dans les paramètres.','custom':'URL personnalisée','goal':'Objectif d’épargne','error':'Erreur','loading':'Connexion','backup':'Sauvegarde copiée','imported':'Données importées','recents':'Dernières opérations'},
+'de':{'home':'Start','moves':'Buchungen','monthly':'Zahlungen','stats':'Statistiken','ai':'KI-Berater','settings':'Einstellungen','balance':'Verfügbar','income':'Einnahmen','expenses':'Ausgaben','savings':'Sparziel','add':'Hinzufügen','delete':'Löschen','save':'Speichern','category':'Kategorie','amount':'Betrag','note':'Notiz','name':'Name','send':'Senden','wait':'KI bereitet die Antwort vor','providerWait':'Warte auf Anbieter','noData':'Noch keine Daten','monthIncome':'Automatisches wiederkehrendes Einkommen','provider':'KI-Anbieter','model':'Modell','key':'API-Schlüssel','import':'JSON importieren','export':'JSON-Sicherung kopieren','confirm':'Alle Daten ersetzen?','yes':'Ersetzen','cancel':'Abbrechen','settingsSaved':'Gespeichert','invalid':'Ungültiger Betrag','type':'Typ','extra':'Zusätzliches Einkommen','expense':'Ausgabe','payment':'Wiederkehrende Zahlung','active':'Aktiv','paused':'Pausiert','language':'Sprache','theme':'Design','dark':'Dunkel','light':'Hell','newPayment':'Neue wiederkehrende Zahlung','noKey':'API-Schlüssel in Einstellungen eintragen.','custom':'Eigene URL','goal':'Sparziel','error':'Fehler','loading':'Verbinden','backup':'Sicherung kopiert','imported':'Daten importiert','recents':'Letzte Buchungen'},
+'bn':{'home':'হোম','moves':'লেনদেন','monthly':'মাসিক পেমেন্ট','stats':'পরিসংখ্যান','ai':'এআই পরামর্শক','settings':'সেটিংস','balance':'অবশিষ্ট','income':'আয়','expenses':'খরচ','savings':'সঞ্চয়ের লক্ষ্য','add':'যোগ করুন','delete':'মুছুন','save':'সংরক্ষণ','category':'বিভাগ','amount':'পরিমাণ','note':'নোট','name':'নাম','send':'পাঠান','wait':'এআই উত্তর প্রস্তুত করছে','providerWait':'সেবাদাতার উত্তরের অপেক্ষায়','noData':'কোনো তথ্য নেই','monthIncome':'নিয়মিত আয়','provider':'এআই প্রদানকারী','model':'মডেল','key':'এপিআই কী','import':'JSON আমদানি','export':'JSON ব্যাকআপ কপি','confirm':'সব তথ্য বদলাবেন?','yes':'বদলান','cancel':'বাতিল','settingsSaved':'সেটিংস সংরক্ষিত','invalid':'ভুল পরিমাণ','type':'ধরন','extra':'অতিরিক্ত আয়','expense':'খরচ','payment':'নিয়মিত পেমেন্ট','active':'সক্রিয়','paused':'বন্ধ','language':'ভাষা','theme':'থিম','dark':'ডার্ক','light':'লাইট','newPayment':'নতুন নিয়মিত পেমেন্ট','noKey':'সেটিংসে এপিআই কী দিন।','custom':'কাস্টম URL','goal':'সঞ্চয়ের লক্ষ্য','error':'ত্রুটি','loading':'সংযোগ','backup':'ব্যাকআপ কপি হয়েছে','imported':'তথ্য আমদানি হয়েছে','recents':'সাম্প্রতিক লেনদেন'}
 };
+const savingsLabels = <String, Map<String, String>>{
+  'es': {'goalReached':'¡Objetivo logrado!', 'goalReachedHint':'Tus ahorros siguen reservados. Puedes empezar una nueva meta sin perderlos.',
+    'newSavingsGoal':'Nueva meta', 'newSavingsGoalHint':'El progreso comenzará en cero y conservarás el ahorro anterior.',
+    'saveFromBalance':'Agregar al ahorro','withdrawSavings':'Retirar del ahorro','spendSavings':'Gastar del ahorro',
+    'correctSavings':'Corregir ahorro',
+    'correctAvailable':'Corregir saldo disponible','availableTotal':'Saldo disponible actual','correctAvailableHint':'Indica cuánto dinero tienes disponible ahora, sin incluir los ahorros. Se ajustará el saldo base sin crear ingresos ni gastos ni cambiar tus ahorros.','correctSavingsHint':'Corrige el total reservado. Se guardará un ajuste sin inventar ingresos ni gastos.',
+    'savingsInsufficient':'No tienes suficiente ahorro reservado.','availableInsufficient':'No tienes suficiente saldo disponible.',
+    'savingsMovement':'Movimiento de ahorro','savedTotal':'Ahorro reservado actual','initialSavings':'¿Cuánto tienes ya ahorrado?',
+    'initialSavingsHint':'Indica el dinero total que posees, incluyendo lo ya ahorrado. El ahorro se separará de ese total, sin contarlo como un nuevo ingreso.',
+    'openingTotal':'Dinero total actual (incluye ahorros)', 'startingSavingsError':'El ahorro inicial no puede superar el dinero total indicado.',
+    'clearProfile':'Borrar toda la información del perfil','clearProfileWarning':'Se eliminarán permanentemente todos los movimientos, saldos, metas, pagos, historial de IA y ajustes de este perfil. Los demás perfiles no cambiarán. Exporta antes una copia JSON.',
+    'clearProfileConfirm':'Para confirmar escribe BORRAR','clearProfileWord':'BORRAR','clearProfileAction':'Borrar datos del perfil','clearProfileDone':'Se borraron los datos del perfil seleccionado.',
+    'openingEdit':'Corregir dinero inicial','savingsCorrectionWarning':'Esto cambia el saldo reservado y el disponible; no crea una transacción de ingreso.',
+    'savingsGoalProgress':'Progreso de esta meta','savingsRetained':'Ahorro total retenido'},
+  'en': {'goalReached':'Goal achieved!','goalReachedHint':'Your savings remain reserved. Start a new goal without losing them.',
+    'newSavingsGoal':'New goal','newSavingsGoalHint':'Progress starts from zero; previously saved money stays reserved.',
+    'saveFromBalance':'Add to savings','withdrawSavings':'Withdraw from savings','spendSavings':'Spend from savings',
+    'correctSavings':'Correct savings',
+    'correctAvailable':'Correct available balance','availableTotal':'Current available balance','correctAvailableHint':'Enter the money available now, excluding savings. This adjusts the base balance without creating income or expenses or changing savings.','correctSavingsHint':'Correct the reserved total. An adjustment is recorded without inventing income or expenses.',
+    'savingsInsufficient':'Not enough savings reserved.','availableInsufficient':'Not enough available balance.',
+    'savingsMovement':'Savings movement','savedTotal':'Current reserved savings','initialSavings':'How much have you already saved?',
+    'initialSavingsHint':'Enter all money you own, including existing savings. Savings will be reserved from that total, not counted as new income.',
+    'openingTotal':'Total current money (including savings)','startingSavingsError':'Starting savings cannot exceed your total starting money.',
+    'clearProfile':'Erase all profile data','clearProfileWarning':'Permanently erases transactions, balances, goals, recurring payments, AI history and settings in this profile only. Other profiles remain untouched. Export a JSON backup first.',
+    'clearProfileConfirm':'Type DELETE to confirm','clearProfileWord':'DELETE','clearProfileAction':'Erase profile data','clearProfileDone':'Selected profile data erased.',
+    'openingEdit':'Correct starting money','savingsCorrectionWarning':'This changes savings and available balance; it is not an income transaction.',
+    'savingsGoalProgress':'Progress for this goal','savingsRetained':'Total savings retained'},
+  'fr': {'goalReached':'Objectif atteint !','goalReachedHint':'Votre épargne reste réservée. Vous pouvez commencer un nouvel objectif.',
+    'newSavingsGoal':'Nouvel objectif','newSavingsGoalHint':'La progression repart de zéro et l’épargne existante est conservée.',
+    'saveFromBalance':'Ajouter à l’épargne','withdrawSavings':'Retirer de l’épargne','spendSavings':'Payer avec l’épargne',
+    'correctSavings':'Corriger l’épargne',
+    'correctAvailable':'Corriger le solde disponible','availableTotal':'Solde disponible actuel','correctAvailableHint':'Indiquez votre argent disponible, hors épargne. Le solde de base sera ajusté sans créer de revenu ni de dépense et sans modifier votre épargne.','correctSavingsHint':'Corrigez le total réservé. Un ajustement sera enregistré sans créer de faux revenu.',
+    'savingsInsufficient':'Épargne insuffisante.','availableInsufficient':'Solde disponible insuffisant.',
+    'savingsMovement':'Mouvement d’épargne','savedTotal':'Épargne réservée actuelle','initialSavings':'Combien avez-vous déjà épargné ?',
+    'initialSavingsHint':'Saisissez votre argent total, épargne comprise. L’épargne sera réservée sans être comptée comme revenu.',
+    'openingTotal':'Argent total actuel (épargne comprise)','startingSavingsError':'L’épargne initiale dépasse l’argent total déclaré.',
+    'clearProfile':'Effacer toutes les données du profil','clearProfileWarning':'Supprime définitivement les opérations, soldes, objectifs, paiements, historique IA et paramètres de ce profil uniquement. Exportez une sauvegarde JSON.',
+    'clearProfileConfirm':'Saisissez EFFACER pour confirmer','clearProfileWord':'EFFACER','clearProfileAction':'Effacer les données','clearProfileDone':'Données du profil effacées.',
+    'openingEdit':'Corriger le solde initial','savingsCorrectionWarning':'Modifie l’épargne et le solde disponible, sans créer de revenu.',
+    'savingsGoalProgress':'Progression de cet objectif','savingsRetained':'Épargne totale conservée'},
+  'de': {'goalReached':'Sparziel erreicht!','goalReachedHint':'Dein Erspartes bleibt reserviert. Du kannst ein neues Ziel beginnen.',
+    'newSavingsGoal':'Neues Sparziel','newSavingsGoalHint':'Der Fortschritt beginnt bei null; das vorhandene Sparguthaben bleibt erhalten.',
+    'saveFromBalance':'Zum Sparen hinzufügen','withdrawSavings':'Aus Sparguthaben entnehmen','spendSavings':'Aus Ersparnissen bezahlen',
+    'correctSavings':'Sparbetrag korrigieren',
+    'correctAvailable':'Verfügbares Guthaben korrigieren','availableTotal':'Aktuell verfügbares Guthaben','correctAvailableHint':'Gib dein aktuell verfügbares Geld ohne Ersparnisse ein. Der Basissaldo wird angepasst, ohne Einnahmen oder Ausgaben zu erstellen oder Ersparnisse zu ändern.','correctSavingsHint':'Den reservierten Betrag korrigieren, ohne Einnahmen oder Ausgaben zu erfinden.',
+    'savingsInsufficient':'Nicht genügend Sparguthaben.','availableInsufficient':'Nicht genügend verfügbares Guthaben.',
+    'savingsMovement':'Sparbewegung','savedTotal':'Aktueller Sparbetrag','initialSavings':'Wie viel hast du bereits gespart?',
+    'initialSavingsHint':'Gib dein gesamtes Geld einschließlich Ersparnissen ein. Ersparnisse werden davon reserviert, nicht als Einnahme gezählt.',
+    'openingTotal':'Aktuelles Gesamtgeld (mit Ersparnissen)','startingSavingsError':'Die anfänglichen Ersparnisse übersteigen das Gesamtgeld.',
+    'clearProfile':'Alle Profildaten löschen','clearProfileWarning':'Löscht alle Buchungen, Salden, Sparziele, Zahlungen, KI-Verlauf und Einstellungen nur dieses Profils. Andere Profile bleiben erhalten. Vorher JSON sichern.',
+    'clearProfileConfirm':'Zum Bestätigen LÖSCHEN eingeben','clearProfileWord':'LÖSCHEN','clearProfileAction':'Profildaten löschen','clearProfileDone':'Profildaten gelöscht.',
+    'openingEdit':'Anfangsgeld korrigieren','savingsCorrectionWarning':'Ändert Ersparnisse und verfügbares Guthaben, ohne Einnahme zu erstellen.',
+    'savingsGoalProgress':'Fortschritt dieses Ziels','savingsRetained':'Gesamte Ersparnisse'},
+  'bn': {'goalReached':'সঞ্চয়ের লক্ষ্য পূরণ হয়েছে!','goalReachedHint':'আগের সঞ্চয় সংরক্ষিত থাকবে। নতুন লক্ষ্য শুরু করতে পারেন।',
+    'newSavingsGoal':'নতুন লক্ষ্য','newSavingsGoalHint':'অগ্রগতি শূন্য থেকে শুরু হবে, আগের সঞ্চয় থাকবে।',
+    'saveFromBalance':'সঞ্চয়ে যোগ করুন','withdrawSavings':'সঞ্চয় থেকে তুলুন','spendSavings':'সঞ্চয় থেকে খরচ',
+    'correctSavings':'সঞ্চয় সংশোধন',
+    'correctAvailable':'উপলব্ধ ব্যালেন্স সংশোধন','availableTotal':'বর্তমান উপলব্ধ ব্যালেন্স','correctAvailableHint':'সঞ্চয় বাদ দিয়ে এখন ব্যবহারযোগ্য অর্থ লিখুন। আয় বা ব্যয় তৈরি না করে এবং সঞ্চয় না বদলে মূল ব্যালেন্স সমন্বয় হবে।','correctSavingsHint':'আয় বা ব্যয় না বানিয়ে সংরক্ষিত মোট অর্থ সংশোধন করুন।',
+    'savingsInsufficient':'যথেষ্ট সঞ্চয় নেই।','availableInsufficient':'যথেষ্ট উপলব্ধ অর্থ নেই।',
+    'savingsMovement':'সঞ্চয় লেনদেন','savedTotal':'বর্তমান সঞ্চয়','initialSavings':'আগে কত টাকা সঞ্চয় করেছেন?',
+    'initialSavingsHint':'সঞ্চয়সহ আপনার মোট অর্থ লিখুন। সঞ্চয়কে আয় না ধরে মোট অর্থ থেকে আলাদা রাখা হবে।',
+    'openingTotal':'বর্তমান মোট অর্থ (সঞ্চয়সহ)','startingSavingsError':'প্রারম্ভিক সঞ্চয় মোট অর্থের বেশি হতে পারে না।',
+    'clearProfile':'প্রোফাইলের সব তথ্য মুছুন','clearProfileWarning':'শুধু এই প্রোফাইলের লেনদেন, ব্যালেন্স, লক্ষ্য, পেমেন্ট, AI ইতিহাস ও সেটিংস স্থায়ীভাবে মুছবে। অন্য প্রোফাইল অক্ষত থাকবে। আগে JSON ব্যাকআপ নিন।',
+    'clearProfileConfirm':'নিশ্চিত করতে DELETE লিখুন','clearProfileWord':'DELETE','clearProfileAction':'প্রোফাইল মুছুন','clearProfileDone':'প্রোফাইলের তথ্য মুছে ফেলা হয়েছে।',
+    'openingEdit':'শুরুর অর্থ সংশোধন','savingsCorrectionWarning':'এটি সঞ্চয় ও উপলব্ধ অর্থ বদলায়, আয় যোগ করে না।',
+    'savingsGoalProgress':'এই লক্ষ্যের অগ্রগতি','savingsRetained':'মোট সংরক্ষিত সঞ্চয়'},
+};
+
 const profileLabels = <String,Map<String,String>>{
   'es':{'storageError':'MafiFlow no pudo leer tus datos. No se ha sobrescrito ningún archivo. Haz una copia de seguridad de tus archivos y contacta con soporte.','profiles':'Perfiles','profileName':'Nombre del perfil','newProfile':'Crear perfil','renameProfile':'Renombrar perfil','deleteProfile':'Eliminar perfil','deleteProfileConfirm':'Eliminar de MafiFlow este perfil y sus datos:','cannotDeleteLast':'No puedes eliminar el único perfil.','profileInfo':'Cada perfil guarda sus propias cuentas, moneda, pagos y estadísticas.','viewStatsBy':'Ver estadísticas por','previousPeriod':'Período anterior','nextPeriod':'Período siguiente','localSummary':'Resumen local (sin IA)','offlineNote':'Funciona sin internet y sin clave API. No es una IA generativa.','currencyWarning':'Cambiar de moneda solo cambia la unidad mostrada: no convierte los importes registrados.'},
   'en':{'storageError':'MafiFlow could not read saved data. Nothing has been overwritten. Back up your existing files and contact support.','profiles':'Profiles','profileName':'Profile name','newProfile':'Create profile','renameProfile':'Rename profile','deleteProfile':'Delete profile','deleteProfileConfirm':'Remove from MafiFlow this profile and its data:','cannotDeleteLast':'You cannot delete the last profile.','profileInfo':'Each profile keeps separate finances, currency, payments and statistics.','viewStatsBy':'View statistics by','previousPeriod':'Previous period','nextPeriod':'Next period','localSummary':'Local summary (no AI)','offlineNote':'Works offline without an API key. Not a generative AI model.','currencyWarning':'Changing currency changes only the display unit, not existing amounts or exchange rates.'},
@@ -143,7 +216,7 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     await save();
   }
 
-  String t(String key)=> profileLabels['${data['language']}']?[key] ?? helpLabels['${data['language']}']?[key] ?? featureLabels['${data['language']}']?[key] ?? improvedLabels['${data['language']}']?[key] ?? (additionalLabels[data['language']] ?? labels[data['language']] ?? labels['es']!)[key] ?? labels['en']![key] ?? key;
+  String t(String key)=> savingsLabels['${data['language']}']?[key] ?? profileLabels['${data['language']}']?[key] ?? helpLabels['${data['language']}']?[key] ?? featureLabels['${data['language']}']?[key] ?? improvedLabels['${data['language']}']?[key] ?? (additionalLabels[data['language']] ?? labels[data['language']] ?? labels['es']!)[key] ?? labels['en']![key] ?? key;
   String catName(String category)=>categoryTranslations[category]?['${data['language']}']??category;
   String transactionTitle(Map<String,dynamic> x) {
     final category='${x['category']??x['type']??''}';
@@ -173,7 +246,7 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     if(note=='Ingreso recurrente automático')return t('monthIncome');
     return note;
   }
-  List<String> get categories {final hidden=(data['hidden_categories'] as List? ?? []).map((e)=>'$e').toSet();final custom=(data['custom_categories'] as List? ?? []).map((e)=>'$e').where((e)=>e.trim().isNotEmpty);return {...defaultCategories,...custom}.where((e)=>!hidden.contains(e)).toList();}
+  List<String> get categories {final hidden=(data['hidden_categories'] as List? ?? []).map((e)=>'$e').toSet();final custom=(data['custom_categories'] as List? ?? []).map((e)=>'$e').where((e)=>e.trim().isNotEmpty);return otherLast({...defaultCategories,...custom}.where((e)=>!hidden.contains(e)));}
   String chartMode='pie';
   List<Map<String,dynamic>> get tx=>records(data['transactions']);
   List<Map<String,dynamic>> get payments=>records(data['monthly_payments']);
@@ -437,8 +510,11 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     final goal=number(data['savings_goal']);
     final saved=number(data['savings_saved']);
     final monthly=number(data['monthly_savings']);
-    if(goal<=0||monthly<=0||saved>=goal)return;
-    final amount=min(monthly,goal-saved);
+    final progress=savingsGoalProgress(data);
+    if(goal<=0||monthly<=0||progress>=goal)return;
+    final amount=min(monthly,min(goal-progress,
+      max(0.0,financialSnapshot(data).available)));
+    if(amount<=0)return;
     data['savings_saved']=saved+amount;
     final history=records(data['savings_history']);
     if(!history.any((e)=>e['month']==month)){
@@ -471,7 +547,8 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     final saved=number(data['savings_saved']);
     final goal=number(data['savings_goal']);
     final monthlySaving=number(data['monthly_savings']);
-    final progress=goal>0?(saved/goal).clamp(0.0,1.0).toDouble():0.0;
+    final goalSaved=savingsGoalProgress(data);
+    final progress=goal>0?(goalSaved/goal).clamp(0.0,1.0).toDouble():0.0;
     return scroll([
       heading(t('home')),
       stat(t('balance'),v.balance,Icons.account_balance_wallet,v.balance<0?expenseRed:green),
@@ -485,9 +562,16 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
           Text(money(goal),style:const TextStyle(fontWeight:FontWeight.bold,fontSize:19,color:Colors.blue)),
         ]),
         const SizedBox(height:12),
-        Text('${money(saved)} / ${money(goal)}'),
+        Text('${t('savingsGoalProgress')}: ${money(goalSaved)} / ${money(goal)}'),
+        Text('${t('savingsRetained')}: ${money(saved)}',style:Theme.of(dialogContext).textTheme.bodySmall),
         const SizedBox(height:8),
         LinearProgressIndicator(value:progress),
+        if(savingsGoalAchieved(data)) ...[
+          const SizedBox(height:12),
+          Text(t('goalReached'),style:TextStyle(color:Theme.of(dialogContext).colorScheme.primary,fontWeight:FontWeight.bold)),
+          Text(t('goalReachedHint')),
+          OutlinedButton.icon(onPressed:showNewSavingsGoal,icon:const Icon(Icons.flag_outlined),label:Text(t('newSavingsGoal'))),
+        ],
       ])),
       card(Row(children:[
         const Icon(Icons.calendar_month_outlined,color:Colors.blue),
@@ -500,6 +584,141 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     ]);
   }
   Widget tile(Map<String,dynamic> x,{VoidCallback? onDelete}) {final plus=x['type']=='Ingreso mensual'||x['type']=='Ingreso extra';return card(ListTile(contentPadding:EdgeInsets.zero,title:Text(transactionTitle(x)),subtitle:Text('${x['date']??''}\n${transactionNote(x)}'),isThreeLine:true,trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text('${plus?'+':'−'}${money(number(x['amount']))}',style:TextStyle(color:plus?green:expenseRed,fontWeight:FontWeight.bold)),if(onDelete!=null)IconButton(onPressed:onDelete,icon:const Icon(Icons.delete_outline))])));}
+  String savingsError(SavingsOperationException error) => t({
+    'not_enough_savings':'savingsInsufficient',
+    'not_enough_available':'availableInsufficient',
+  }[error.reason]??'invalid');
+
+  Future<void> savingsDialog(SavingsAction action) async {
+    final input=TextEditingController();
+    final note=TextEditingController();
+    final label=action==SavingsAction.deposit?'saveFromBalance':
+      action==SavingsAction.withdraw?'withdrawSavings':'spendSavings';
+    var accepted=false;
+    await showDialog<void>(context:dialogContext,builder:(c)=>AlertDialog(
+      title:Text(t(label)),
+      content:Column(mainAxisSize:MainAxisSize.min,children:[
+        TextField(controller:input,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+          decoration:InputDecoration(labelText:t('amount'))),
+        TextField(controller:note,decoration:InputDecoration(labelText:t('note'))),
+      ]),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c),child:Text(t('cancel'))),
+        FilledButton(onPressed:(){
+          final n=double.tryParse(input.text.trim().replaceAll(',','.'));
+          if(n==null||!n.isFinite||n<=0){notice(t('invalid'));return;}
+          try{performSavingsAction(data,action,n,note:note.text);
+            accepted=true;Navigator.pop(c);
+          }on SavingsOperationException catch(e){notice(savingsError(e));}
+        },child:Text(t('save')))],
+    ));
+    WidgetsBinding.instance.addPostFrameCallback((_){input.dispose();note.dispose();});
+    if(accepted)await save();
+  }
+
+  Future<void> showCorrectAvailable() async {
+    final input=TextEditingController(text:financialSnapshot(data).available.toStringAsFixed(2));
+    var changed=false;
+    await showDialog<void>(context:dialogContext,builder:(c)=>AlertDialog(
+      title:Text(t('correctAvailable')),
+      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+        Text(t('correctAvailableHint')),
+        TextField(controller:input,
+          keyboardType:const TextInputType.numberWithOptions(decimal:true,signed:true),
+          decoration:InputDecoration(labelText:t('availableTotal'))),
+      ])),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c),child:Text(t('cancel'))),
+        FilledButton(onPressed:(){
+          final n=double.tryParse(input.text.trim().replaceAll(',','.'));
+          if(n==null||!n.isFinite){notice(t('invalid'));return;}
+          try{correctAvailableBalance(data,n);changed=true;Navigator.pop(c);}
+          on ArgumentError {notice(t('invalid'));}
+        },child:Text(t('save')))],
+    ));
+    WidgetsBinding.instance.addPostFrameCallback((_){input.dispose();});
+    if(changed)await save();
+  }
+
+  Future<void> showCorrectSavings() async {
+    final input=TextEditingController(text:'${data['savings_saved']??0}');
+    var changed=false;
+    await showDialog<void>(context:dialogContext,builder:(c)=>AlertDialog(
+      title:Text(t('correctSavings')),
+      content:Column(mainAxisSize:MainAxisSize.min,children:[
+        Text(t('correctSavingsHint')),
+        TextField(controller:input,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+          decoration:InputDecoration(labelText:t('savedTotal'))),
+        Text(t('savingsCorrectionWarning')),
+      ]),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c),child:Text(t('cancel'))),
+        FilledButton(onPressed:(){
+          final n=double.tryParse(input.text.trim().replaceAll(',','.'));
+          if(n==null||!n.isFinite||n<0){notice(t('invalid'));return;}
+          correctSavingsBalance(data,n);changed=true;Navigator.pop(c);
+        },child:Text(t('save')))],
+    ));
+    WidgetsBinding.instance.addPostFrameCallback((_){input.dispose();});
+    if(changed)await save();
+  }
+
+  Future<void> showNewSavingsGoal() async {
+    final input=TextEditingController(text:'${data['savings_goal']??0}');
+    var changed=false;
+    await showDialog<void>(context:dialogContext,builder:(c)=>AlertDialog(
+      title:Text(t('newSavingsGoal')),
+      content:Column(mainAxisSize:MainAxisSize.min,children:[
+        Text(t('newSavingsGoalHint')),
+        TextField(controller:input,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+          decoration:InputDecoration(labelText:t('goal'))),
+      ]),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c),child:Text(t('cancel'))),
+        FilledButton(onPressed:(){
+          final n=double.tryParse(input.text.trim().replaceAll(',','.'));
+          if(n==null||!n.isFinite||n<=0){notice(t('invalid'));return;}
+          startNewSavingsGoal(data,n);changed=true;Navigator.pop(c);
+        },child:Text(t('save')))],
+    ));
+    WidgetsBinding.instance.addPostFrameCallback((_){input.dispose();});
+    if(changed)await save();
+  }
+
+  Future<void> eraseCurrentProfile() async {
+    final controller=TextEditingController();
+    var entered='';
+    final word=t('clearProfileWord');
+    final confirm=await showDialog<bool>(context:dialogContext,builder:(c)=>StatefulBuilder(
+      builder:(c,update)=>AlertDialog(
+        title:Text(t('clearProfile'),style:TextStyle(color:Theme.of(c).colorScheme.error)),
+        content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+          Text(activeProfileName,style:Theme.of(c).textTheme.titleMedium),
+          const SizedBox(height:12),Text(t('clearProfileWarning')),
+          const SizedBox(height:12),Text(t('clearProfileConfirm')),
+          TextField(controller:controller,autocorrect:false,
+            onChanged:(value)=>update(()=>entered=value),
+            decoration:InputDecoration(labelText:word)),
+        ])),
+        actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text(t('cancel'))),
+          FilledButton(onPressed:entered.trim()==word?()=>Navigator.pop(c,true):null,
+            style:FilledButton.styleFrom(backgroundColor:Theme.of(c).colorScheme.error,
+              foregroundColor:Theme.of(c).colorScheme.onError),child:Text(t('clearProfileAction')))],
+      )));
+    WidgetsBinding.instance.addPostFrameCallback((_){controller.dispose();});
+    if(confirm!=true)return;
+    // Mutate the active profile only. Keep its ID and name for other profiles.
+    setState((){
+      archive.resetActive(defaults);
+      data=archive.active.data;
+      tab=0;statsPeriod='monthly';periodOffset=0;
+    });
+    await save();
+    // A pre-profile single-account copy can still exist under this legacy key.
+    // Clear it only for the original profile, after saving the new archive.
+    if(archive.activeId=='profile_1'){
+      final preferences=await SharedPreferences.getInstance();
+      await preferences.remove('mafiflow_data');
+    }
+    notice(t('clearProfileDone'));
+  }
+
   Future<void> addTransaction() async {
     String type='Gasto';
     String category=categories.isEmpty?'Otro':categories.first;
@@ -508,18 +727,38 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     await showDialog(context:dialogContext,builder:(c)=>StatefulBuilder(builder:(c,update)=>AlertDialog(
       title:Text(t('add')),
       content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-        DropdownButtonFormField<String>(initialValue:type,items:['Gasto','Ingreso extra'].map((e)=>DropdownMenuItem(value:e,child:Text(e=='Gasto'?t('expense'):t('extra')))).toList(),onChanged:(v)=>update(()=>type=v!)),
-        if(type=='Gasto') DropdownButtonFormField<String>(key:ValueKey(category),initialValue:categories.contains(category)?category:null,decoration:InputDecoration(labelText:t('category')),isExpanded:true,items:categories.map((e)=>DropdownMenuItem(value:e,child:Text(catName(e)))).toList(),onChanged:(v)=>update(()=>category=v??'Otro')),
-        TextButton.icon(onPressed:()async{await manageCategories();if(c.mounted)update((){if(!categories.contains(category))category=categories.isEmpty?'Otro':categories.first;});},icon:const Icon(Icons.tune),label:Text(t('editCategories'))),
+        DropdownButtonFormField<String>(key:ValueKey('movement-$type'),isExpanded:true,initialValue:type,
+          items:[
+            DropdownMenuItem(value:'Gasto',child:Text(t('expense'))),
+            DropdownMenuItem(value:'Ingreso extra',child:Text(t('extra'))),
+            DropdownMenuItem(value:'SavingsDeposit',child:Text(t('saveFromBalance'))),
+            DropdownMenuItem(value:'SavingsWithdraw',child:Text(t('withdrawSavings'))),
+            DropdownMenuItem(value:'SavingsSpend',child:Text(t('spendSavings'))),
+          ],onChanged:(v)=>update(()=>type=v??'Gasto')), 
+        if(type=='Gasto'||type=='SavingsSpend') DropdownButtonFormField<String>(key:ValueKey(category),initialValue:categories.contains(category)?category:null,decoration:InputDecoration(labelText:t('category')),isExpanded:true,items:categories.map((e)=>DropdownMenuItem(value:e,child:Text(catName(e)))).toList(),onChanged:(v)=>update(()=>category=v??'Otro')),
+        if(type=='Gasto'||type=='SavingsSpend')TextButton.icon(onPressed:()async{await manageCategories();if(c.mounted)update((){if(!categories.contains(category))category=categories.isEmpty?'Otro':categories.first;});},icon:const Icon(Icons.tune),label:Text(t('editCategories'))),
         TextField(controller:amount,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:t('amount'))),
         TextField(controller:note,decoration:InputDecoration(labelText:t('note')))
       ])),
       actions:[TextButton(onPressed:()=>Navigator.pop(c),child:Text(t('cancel'))),FilledButton(onPressed:(){
         final n=double.tryParse(amount.text.replaceAll(',','.'));
         if(n==null||n<=0||!n.isFinite){notice(t('invalid'));return;}
-        data['transactions']=[...tx,{'date':stampNow(),'type':type,'category':type=='Gasto'?category:'Ingreso extra','amount':n,'note':note.text}];
-        transactionAdded=true;
-        Navigator.pop(c);
+        try{
+          if(type=='SavingsDeposit'||type=='SavingsWithdraw'||type=='SavingsSpend'){
+            performSavingsAction(data,
+              type=='SavingsDeposit'?SavingsAction.deposit:
+              type=='SavingsWithdraw'?SavingsAction.withdraw:SavingsAction.spend,
+              n,category:category,note:note.text);
+          }else{
+            data['transactions']=[...tx,{'date':stampNow(),'type':type,
+              'category':type=='Gasto'?category:'Ingreso extra',
+              'amount':n,'note':note.text}];
+          }
+          transactionAdded=true;
+          Navigator.pop(c);
+        }on SavingsOperationException catch(err){
+          notice(savingsError(err));
+        }
       },child:Text(t('save')))]
     )));
     if (transactionAdded) {
@@ -546,8 +785,27 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_){controller.dispose();});
     refreshAfterDialog();
   }
-  Widget transactions()=>scroll([heading(t('moves')),FilledButton.icon(onPressed:addTransaction,icon:const Icon(Icons.add),label:Text(t('add'))),...tx.reversed.map((x)=>tile(x,onDelete:(){final list=tx;// compare values as records() creates copies
-    final i=list.indexWhere((v)=>v['date']==x['date']&&v['amount']==x['amount']&&v['type']==x['type']&&v['note']==x['note']);if(i>=0)list.removeAt(i);data['transactions']=list;save();}))]);
+  Widget transactions()=>scroll([heading(t('moves')),
+    FilledButton.icon(onPressed:addTransaction,icon:const Icon(Icons.add),label:Text(t('add'))),
+    ...tx.asMap().entries.toList().reversed.map((entry)=>tile(entry.value,onDelete:(){
+      try{if(removeFinanceTransaction(data,entry.key))save();}
+      on SavingsOperationException catch(err){notice(savingsError(err));}
+    })),
+    heading(t('savingsMovement')),
+    ...records(data['savings_history']).reversed.map((item)=>card(ListTile(
+      leading:Icon(number(item['amount'])>=0?Icons.savings_outlined:Icons.payments_outlined,
+        color:number(item['amount'])>=0?green:expenseRed),
+      title:Text({
+        'deposit':t('saveFromBalance'),
+        'withdraw':t('withdrawSavings'),
+        'spend':t('spendSavings'),
+        'correction':t('correctSavings'),
+      }['${item['kind']}']??t('automaticSavings')),
+      subtitle:Text('${item['date']??''}\n${item['note']??''}'),
+      trailing:Text('${number(item['amount'])>=0?'+':'−'}${money(number(item['amount']).abs())}',
+        style:TextStyle(color:number(item['amount'])>=0?green:expenseRed)),
+    ))),
+  ]);
   Future<void> addPayment()async {
     final name=TextEditingController(),amount=TextEditingController();
     int selectedDay=DateTime.now().day;
@@ -698,7 +956,7 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
       if(n>0)byCategory.update('${x['category']??'Otro'}',(old)=>old+n,ifAbsent:()=>n);
     }
     final colors=[green,expenseRed,Colors.blue,Colors.orange,Colors.purple,Colors.teal,Colors.pink,Colors.amber,Colors.indigo];
-    final items=byCategory.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
+    final items=byCategory.entries.toList()..sort((a,b)=>compareCategoryEntries(a,b));
     final expenseTotal=items.fold<double>(0,(v,e)=>v+e.value);
     final count=statsPeriod=='daily'?7:statsPeriod=='weekly'?8:6;
     final periods=List.generate(count,(i)=>_periodShift(current,i-count+1,statsPeriod));
@@ -714,7 +972,8 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
     }
     final goal=number(data['savings_goal']);
     final saved=number(data['savings_saved']);
-    final savingsRatio=goal>0?(saved/goal).clamp(0.0,1.0).toDouble():0.0;
+    final goalProgress=savingsGoalProgress(data);
+    final savingsRatio=goal>0?(goalProgress/goal).clamp(0.0,1.0).toDouble():0.0;
     final balanceSeries=periods.map((p)=>_balanceAt(_periodShift(p,1,statsPeriod))).toList();
     final savingSeries=periods.map((p)=>_savingsAt(_periodShift(p,1,statsPeriod))).toList();
     final hasSavingsHistory=records(data['savings_history']).isNotEmpty;
@@ -753,7 +1012,8 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
       card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text(_analyticsText('savingsGoal'),style:Theme.of(dialogContext).textTheme.titleMedium),
         const SizedBox(height:10),
-        Text('${money(saved)} / ${money(goal)}'),
+        Text('${money(goalProgress)} / ${money(goal)}'),
+        Text('${t('savingsRetained')}: ${money(saved)}'),
         const SizedBox(height:8),LinearProgressIndicator(value:savingsRatio),
         const SizedBox(height:8),Text('${(savingsRatio*100).toStringAsFixed(1)}%'),
       ])),
@@ -867,6 +1127,7 @@ class _MafiFlowAppState extends State<MafiFlowApp> with WidgetsBindingObserver {
   Widget settings()=>SettingsPanel(
     key:ValueKey('settings-${archive.activeId}'), active:tab==5, data:data, t:t, scrollBuilder:scroll, cardBuilder:card, headingBuilder:heading,
     onManageCategories:manageCategories, onManageProfiles:manageProfiles, onImportBackup:importBackup,
+    onEraseProfile:eraseCurrentProfile,onCorrectAvailable:showCorrectAvailable,onCorrectSavings:showCorrectSavings,onNewGoal:showNewSavingsGoal,
     onExportBackup:() async {
       // A complete cross-platform backup (all profiles), without API secrets.
       final copy=jsonDecode(archive.encode(omitSecrets:true));
@@ -900,7 +1161,8 @@ class SettingsPanel extends StatefulWidget {
   const SettingsPanel({super.key,required this.active,required this.data,required this.t,
     required this.scrollBuilder,required this.cardBuilder,required this.headingBuilder,
     required this.onManageCategories,required this.onManageProfiles,required this.onImportBackup,
-    required this.onExportBackup,required this.onSave,required this.onInvalid});
+    required this.onExportBackup,required this.onSave,required this.onInvalid,
+    required this.onEraseProfile,required this.onCorrectAvailable,required this.onCorrectSavings,required this.onNewGoal});
   final bool active;
   final Map<String,dynamic> data;
   final String Function(String) t;
@@ -913,6 +1175,10 @@ class SettingsPanel extends StatefulWidget {
   final Future<void> Function() onExportBackup;
   final Future<void> Function(Map<String,dynamic>) onSave;
   final VoidCallback onInvalid;
+  final Future<void> Function() onEraseProfile;
+  final Future<void> Function() onCorrectAvailable;
+  final Future<void> Function() onCorrectSavings;
+  final Future<void> Function() onNewGoal;
   @override State<SettingsPanel> createState()=>_SettingsPanelState();
 }
 class _SettingsPanelState extends State<SettingsPanel> {
@@ -962,7 +1228,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
     await widget.onSave({
       'monthly_income':inc,'income_frequency':incomeFrequency,
       'income_start_date':'${incomePayday.year}-${incomePayday.month.toString().padLeft(2,'0')}-${incomePayday.day.toString().padLeft(2,'0')}',
-      'savings_goal':sav,'monthly_savings':monthly,'currency':currency,
+      'savings_goal':sav,'monthly_savings':monthly,
+      'currency':currency,
       'ai_provider':provider,'ai_api_key':api.text.trim(),
       'ai_model':model.text.trim(),'ai_base_url':url.text.trim(),
       'language':lang,'theme':theme,
@@ -973,13 +1240,16 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return widget.scrollBuilder([
       widget.headingBuilder(t('settings')),
       widget.cardBuilder(Column(children:[
+        ListTile(leading:const Icon(Icons.account_balance_wallet_outlined),title:Text(t('correctAvailable')),onTap:widget.onCorrectAvailable),
+        ListTile(leading:const Icon(Icons.savings_outlined),title:Text(t('correctSavings')),onTap:widget.onCorrectSavings),
+        ListTile(leading:const Icon(Icons.flag_outlined),title:Text(t('newSavingsGoal')),subtitle:Text(t('newSavingsGoalHint')),onTap:()async{await widget.onNewGoal();if(mounted){goal.text='${widget.data['savings_goal']??0}';}}),
+        const Divider(),
         TextField(controller:income,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:t('payAmount'))),
         DropdownButtonFormField<String>(isExpanded:true,key:ValueKey('frequency-$incomeFrequency'),initialValue:['daily','weekly','biweekly','monthly','two_months','three_months'].contains(incomeFrequency)?incomeFrequency:'monthly',decoration:InputDecoration(labelText:t('payFrequency')),items:[DropdownMenuItem(value:'daily',child:Text(t('freqDaily'))),DropdownMenuItem(value:'weekly',child:Text(t('freqWeekly'))),DropdownMenuItem(value:'biweekly',child:Text(t('freqBiweekly'))),DropdownMenuItem(value:'monthly',child:Text(t('freqMonthly'))),DropdownMenuItem(value:'two_months',child:Text(t('freqTwoMonths'))),DropdownMenuItem(value:'three_months',child:Text(t('freqThreeMonths')))],onChanged:(v)=>setState((){final next=v??'monthly';if(next!=incomeFrequency){incomeFrequency=next;incomePayday=DateTime.now();}})),
         if(incomeFrequency!='daily')ListTile(contentPadding:EdgeInsets.zero,title:Text(t('firstPaymentDate')),subtitle:Text('${incomePayday.year}-${incomePayday.month.toString().padLeft(2,'0')}-${incomePayday.day.toString().padLeft(2,'0')}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:incomePayday,firstDate:DateTime(2020),lastDate:DateTime(2100));if(d!=null)setState(()=>incomePayday=d);}),
         TextField(controller:goal,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:t('goal'))),
         TextField(controller:monthlySavings,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:t('monthlySavings'))),
         Text(t('monthlySavingsHint')),
-        // Opening balance is set only in the onboarding wizard. Do not edit it here.
         DropdownButtonFormField<String>(key:ValueKey('currency-$currency'),initialValue:currency,decoration:InputDecoration(labelText:t('currency')),items:['USD','CAD','EUR','GBP','BDT','CUP'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD')),
         Text(t('currencyWarning'),style:Theme.of(context).textTheme.bodySmall),
         DropdownButtonFormField<String>(key:ValueKey('provider-$provider'),initialValue:['OpenAI','NVIDIA','Custom','Offline'].contains(provider)?provider:'OpenAI',decoration:InputDecoration(labelText:t('provider')),items:['OpenAI','NVIDIA','Custom','Offline'].map((e)=>DropdownMenuItem(value:e,child:Text(e=='Offline'?t('localSummary'):e))).toList(),onChanged:(v)=>setState(()=>provider=v??'OpenAI')),
@@ -997,6 +1267,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
         ListTile(leading:const Icon(Icons.category_outlined),title:Text(t('manageCategories')),onTap:widget.onManageCategories),
         ListTile(leading:const Icon(Icons.copy),title:Text(t('export')),onTap:widget.onExportBackup),
         ListTile(leading:const Icon(Icons.download),title:Text(t('import')),onTap:widget.onImportBackup),
+        const Divider(),
+        ListTile(leading:Icon(Icons.delete_forever,color:Theme.of(context).colorScheme.error),
+          title:Text(t('clearProfile'),style:TextStyle(color:Theme.of(context).colorScheme.error)),
+          onTap:widget.onEraseProfile),
       ])),
     ]);
   }
@@ -1031,7 +1305,7 @@ class _AdvisorState extends State<Advisor> {
         '$answerLanguage. '
         '${financeContext(widget.data)} '
         'Avoid inventing facts, live bank balances or exchange conversions.'},
-        ...history.take(20).map((e)=>{'role':e['role'],'content':e['content']})];
+        ...recentAdvisorMessages(history)];
       client=http.Client();final req=http.Request('POST',Uri.parse('$base/chat/completions'));req.headers.addAll({'Authorization':'Bearer $key','Content-Type':'application/json','Accept':'text/event-stream'});req.body=jsonEncode({'model':model,'messages':messages,'stream':true,'max_tokens':1000});final res=await client!.send(req).timeout(const Duration(seconds:35));if(res.statusCode<200||res.statusCode>=300){
         await res.stream.drain<void>();
         throw Exception(advisorHttpError(res.statusCode,widget.lang));
@@ -1054,7 +1328,8 @@ class WelcomeWizard extends StatefulWidget {
 }
 class _WelcomeWizardState extends State<WelcomeWizard> {
   int step=0;String language='es',currency='USD',incomeFrequency='monthly';DateTime payday=DateTime(DateTime.now().year,DateTime.now().month+1,1);
-  final income=TextEditingController(text:'0'),opening=TextEditingController(text:'0'),goal=TextEditingController(text:'0'),monthlySavings=TextEditingController(text:'0');
+  final income=TextEditingController(text:'0'),opening=TextEditingController(text:'0'),
+    initialSavings=TextEditingController(text:'0'),goal=TextEditingController(text:'0'),monthlySavings=TextEditingController(text:'0');
   final Set<TextEditingController> selectedOnFirstFocus={};
   void selectInitialZero(TextEditingController controller){
     if(selectedOnFirstFocus.add(controller)&&controller.text=='0'){
@@ -1064,14 +1339,23 @@ class _WelcomeWizardState extends State<WelcomeWizard> {
   int paymentDay=DateTime.now().day;String paymentFrequency='monthly';DateTime firstBillDate=DateTime.now();
   final name=TextEditingController(),payment=TextEditingController();
   final List<Map<String,dynamic>> bills=[];
-  @override void dispose(){income.dispose();opening.dispose();goal.dispose();monthlySavings.dispose();name.dispose();payment.dispose();super.dispose();}
+  @override void dispose(){income.dispose();opening.dispose();initialSavings.dispose();goal.dispose();monthlySavings.dispose();name.dispose();payment.dispose();super.dispose();}
   String word(String es,String en,String fr,String de,String bn)=>{'es':es,'en':en,'fr':fr,'de':de,'bn':bn}[language]??es;
   double? parse(String v){final x=double.tryParse(v.trim().replaceAll(',','.'));return x!=null&&x.isFinite&&x>=0?x:null;}
   void next(){
     if((step==1&&(parse(income.text)==null||parse(opening.text)==null)) ||
-       (step==2&&(parse(goal.text)==null||parse(monthlySavings.text)==null))){
+       (step==2&&(parse(goal.text)==null||parse(monthlySavings.text)==null||
+          parse(initialSavings.text)==null))){
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(word('Introduce cantidades válidas','Enter valid amounts','Montants invalides','Ungültige Beträge','সঠিক পরিমাণ দিন'))));
       return;
+    }
+    if(step==2&&(parse(initialSavings.text)??0)>(parse(opening.text)??0)){
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(word(
+        'El ahorro inicial no puede superar tu dinero total.',
+        'Starting savings cannot exceed your starting total.',
+        'L’épargne initiale ne peut dépasser votre montant total.',
+        'Ersparnisse dürfen das Gesamtgeld nicht übersteigen.',
+        'প্রাথমিক সঞ্চয় মোট অর্থের বেশি হতে পারে না।'))));return;
     }
     if(step<3){setState(()=>step++);return;}
     // Save the payment being typed even when the user skips Add payment.
@@ -1085,12 +1369,19 @@ class _WelcomeWizardState extends State<WelcomeWizard> {
       bills.add({'name':pendingName,'amount':pendingAmount,'active':true,'day':paymentDay,'frequency':paymentFrequency,'start_date':paymentFrequency=='daily'?wizardFirstRecurringDate(paymentDay,'daily'):'${firstBillDate.year}-${firstBillDate.month.toString().padLeft(2,'0')}-${firstBillDate.day.toString().padLeft(2,'0')}'});
       name.clear();payment.clear();paymentDay=DateTime.now().day;paymentFrequency='monthly';
     }
-    widget.onComplete({'language':language,'currency':currency,'monthly_income':parse(income.text)??0,'income_frequency':incomeFrequency,'income_start_date':payday.toIso8601String().substring(0,10),'opening_balance':parse(opening.text)??0,'savings_goal':parse(goal.text)??0,'monthly_savings':parse(monthlySavings.text)??0,'monthly_payments':bills});
+    widget.onComplete({'language':language,'currency':currency,'monthly_income':parse(income.text)??0,'income_frequency':incomeFrequency,'income_start_date':payday.toIso8601String().substring(0,10),'opening_balance':parse(opening.text)??0,
+      'savings_saved':parse(initialSavings.text)??0, 'savings_opening':parse(initialSavings.text)??0,
+      'savings_opening_known':true,
+      'savings_goal_base':0.0,'savings_goal':parse(goal.text)??0,'monthly_savings':parse(monthlySavings.text)??0,'monthly_payments':bills});
   }
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('MafiFlow'),actions:[IconButton(icon:const Icon(Icons.switch_account_outlined),tooltip:word('Perfiles','Profiles','Profils','Profile','প্রোফাইল'),onPressed:widget.onProfiles)]),body:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:540),child:ListView(padding:const EdgeInsets.all(24),children:[LinearProgressIndicator(value:(step+1)/4),const SizedBox(height:28),Text(word('¡Bienvenido a MafiFlow!','Welcome to MafiFlow!','Bienvenue sur MafiFlow !','Willkommen bei MafiFlow!','MafiFlow-তে স্বাগতম!'),style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:22),
     if(step==0)...[Text(word('Elige idioma y moneda','Choose language and currency','Choisissez langue et devise','Sprache und Währung wählen','ভাষা ও মুদ্রা নির্বাচন করুন')),DropdownButtonFormField<String>(initialValue:language,items:const [DropdownMenuItem(value:'es',child:Text('Español')),DropdownMenuItem(value:'en',child:Text('English')),DropdownMenuItem(value:'fr',child:Text('Français')),DropdownMenuItem(value:'de',child:Text('Deutsch')),DropdownMenuItem(value:'bn',child:Text('বাংলা'))],onChanged:(v)=>setState(()=>language=v??'es')),DropdownButtonFormField<String>(initialValue:currency,items:['USD','CAD','EUR','GBP','BDT','CUP'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>currency=v??'USD'))],
-    if(step==1)...[Text(word('Configura tus finanzas iniciales','Set up your starting finances','Configurez vos finances','Finanzen einrichten','প্রাথমিক অর্থ সেট করুন')),TextField(controller:income,onTap:()=>selectInitialZero(income),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Cantidad que recibes por pago','Amount per payday','Montant par paie','Betrag pro Zahlung','প্রতি বেতনের পরিমাণ'))),DropdownButtonFormField<String>(isExpanded:true,initialValue:incomeFrequency,decoration:InputDecoration(labelText:word('¿Cada cuánto cobras?','How often are you paid?','À quelle fréquence êtes-vous payé ?','Wie oft wirst du bezahlt?','কত ঘন ঘন বেতন পান?')),items:[DropdownMenuItem(value:'daily',child:Text(word('Diariamente','Daily','Chaque jour','Täglich','প্রতিদিন'))),DropdownMenuItem(value:'weekly',child:Text(word('Semanalmente','Weekly','Chaque semaine','Wöchentlich','প্রতি সপ্তাহে'))),DropdownMenuItem(value:'biweekly',child:Text(word('Cada 2 semanas','Every 2 weeks','Toutes les 2 semaines','Alle 2 Wochen','প্রতি ২ সপ্তাহে'))),DropdownMenuItem(value:'monthly',child:Text(word('Mensualmente','Monthly','Chaque mois','Monatlich','প্রতি মাসে'))),DropdownMenuItem(value:'two_months',child:Text(word('Cada 2 meses','Every 2 months','Tous les 2 mois','Alle 2 Monate','প্রতি ২ মাসে'))),DropdownMenuItem(value:'three_months',child:Text(word('Cada 3 meses','Every 3 months','Tous les 3 mois','Alle 3 Monate','প্রতি ৩ মাসে')))],onChanged:(v)=>setState(()=>incomeFrequency=v??'monthly')),const SizedBox(height:8),ListTile(contentPadding:EdgeInsets.zero,title:Text(word('Fecha del próximo cobro','Next payday','Date du premier paiement','Erster Zahltag','প্রথম বেতনের তারিখ')),subtitle:Text('${payday.year}-${payday.month.toString().padLeft(2,'0')}-${payday.day.toString().padLeft(2,'0')}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final chosen=await showDatePicker(context:context,initialDate:payday,firstDate:DateTime(2020),lastDate:DateTime(2100));if(chosen!=null)setState(()=>payday=chosen);}),TextField(controller:opening,onTap:()=>selectInitialZero(opening),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Saldo disponible ahora (no se suma al salario)','Available balance now (not added to salary)','Solde actuel (pas un revenu)','Aktueller Kontostand (kein Einkommen)','বর্তমান ব্যালেন্স')))],
-    if(step==2)...[TextField(controller:monthlySavings,onTap:()=>selectInitialZero(monthlySavings),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuánto quieres ahorrar al mes?','How much to save monthly?','Combien épargner par mois ?','Monatlicher Sparbetrag','মাসিক সঞ্চয়'))),TextField(controller:goal,onTap:()=>selectInitialZero(goal),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuál es tu objetivo total de ahorro?','Total savings target','Objectif total d’épargne','Gesamtsparziel','মোট সঞ্চয়ের লক্ষ্য'))),const SizedBox(height:12),Text(word('Mensualmente este dinero se descontará automáticamente del dinero disponible hasta llegar a tu objetivo.','Each month this amount will automatically be deducted from available money until you reach your goal.','Chaque mois, ce montant sera déduit de votre solde disponible jusqu’à votre objectif.','Jeden Monat wird dieser Betrag vom verfügbaren Geld abgezogen, bis das Ziel erreicht ist.','লক্ষ্য পূরণ না হওয়া পর্যন্ত প্রতি মাসে উপলব্ধ অর্থ থেকে এই পরিমাণ বাদ যাবে।'))],
+    if(step==1)...[Text(word('Configura tus finanzas iniciales','Set up your starting finances','Configurez vos finances','Finanzen einrichten','প্রাথমিক অর্থ সেট করুন')),TextField(controller:income,onTap:()=>selectInitialZero(income),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Cantidad que recibes por pago','Amount per payday','Montant par paie','Betrag pro Zahlung','প্রতি বেতনের পরিমাণ'))),DropdownButtonFormField<String>(isExpanded:true,initialValue:incomeFrequency,decoration:InputDecoration(labelText:word('¿Cada cuánto cobras?','How often are you paid?','À quelle fréquence êtes-vous payé ?','Wie oft wirst du bezahlt?','কত ঘন ঘন বেতন পান?')),items:[DropdownMenuItem(value:'daily',child:Text(word('Diariamente','Daily','Chaque jour','Täglich','প্রতিদিন'))),DropdownMenuItem(value:'weekly',child:Text(word('Semanalmente','Weekly','Chaque semaine','Wöchentlich','প্রতি সপ্তাহে'))),DropdownMenuItem(value:'biweekly',child:Text(word('Cada 2 semanas','Every 2 weeks','Toutes les 2 semaines','Alle 2 Wochen','প্রতি ২ সপ্তাহে'))),DropdownMenuItem(value:'monthly',child:Text(word('Mensualmente','Monthly','Chaque mois','Monatlich','প্রতি মাসে'))),DropdownMenuItem(value:'two_months',child:Text(word('Cada 2 meses','Every 2 months','Tous les 2 mois','Alle 2 Monate','প্রতি ২ মাসে'))),DropdownMenuItem(value:'three_months',child:Text(word('Cada 3 meses','Every 3 months','Tous les 3 mois','Alle 3 Monate','প্রতি ৩ মাসে')))],onChanged:(v)=>setState(()=>incomeFrequency=v??'monthly')),const SizedBox(height:8),ListTile(contentPadding:EdgeInsets.zero,title:Text(word('Fecha del próximo cobro','Next payday','Date du premier paiement','Erster Zahltag','প্রথম বেতনের তারিখ')),subtitle:Text('${payday.year}-${payday.month.toString().padLeft(2,'0')}-${payday.day.toString().padLeft(2,'0')}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final chosen=await showDatePicker(context:context,initialDate:payday,firstDate:DateTime(2020),lastDate:DateTime(2100));if(chosen!=null)setState(()=>payday=chosen);}),TextField(controller:opening,onTap:()=>selectInitialZero(opening),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Dinero total actual (incluye ahorros)','Total current money (including savings)','Argent total actuel (épargne comprise)','Aktuelles Gesamtgeld (mit Ersparnissen)','বর্তমান মোট অর্থ (সঞ্চয়সহ)')))],
+    if(step==2)...[Text(word('El saldo inicial incluye lo que ya ahorraste; no lo cuentes dos veces.','Your starting total includes what you already saved; do not count it twice.','Votre total initial comprend déjà votre épargne.','Der Anfangsbetrag enthält deine Ersparnisse bereits.','শুরুর মোট টাকায় সঞ্চয়ও আছে।')),
+      TextField(controller:initialSavings,onTap:()=>selectInitialZero(initialSavings),
+        keyboardType:const TextInputType.numberWithOptions(decimal:true),
+        decoration:InputDecoration(labelText:word('¿Cuánto tienes ya ahorrado?','How much have you already saved?','Combien avez-vous déjà épargné ?','Wie viel hast du bereits gespart?','আগে কত টাকা সঞ্চয় করেছেন?'))),
+      TextField(controller:monthlySavings,onTap:()=>selectInitialZero(monthlySavings),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuánto quieres ahorrar al mes?','How much to save monthly?','Combien épargner par mois ?','Monatlicher Sparbetrag','মাসিক সঞ্চয়'))),TextField(controller:goal,onTap:()=>selectInitialZero(goal),keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('¿Cuál es tu objetivo total de ahorro?','Total savings target','Objectif total d’épargne','Gesamtsparziel','মোট সঞ্চয়ের লক্ষ্য'))),const SizedBox(height:12),Text(word('Mensualmente este dinero se descontará automáticamente del dinero disponible hasta llegar a tu objetivo.','Each month this amount will automatically be deducted from available money until you reach your goal.','Chaque mois, ce montant sera déduit de votre solde disponible jusqu’à votre objectif.','Jeden Monat wird dieser Betrag vom verfügbaren Geld abgezogen, bis das Ziel erreicht ist.','লক্ষ্য পূরণ না হওয়া পর্যন্ত প্রতি মাসে উপলব্ধ অর্থ থেকে এই পরিমাণ বাদ যাবে।'))],
     if(step==3)...[Text(word('Agrega tus gastos fijos (opcional)','Add recurring expenses (optional)','Ajoutez les dépenses récurrentes','Wiederkehrende Ausgaben','নিয়মিত খরচ যোগ করুন')),TextField(controller:name,decoration:InputDecoration(labelText:word('Nombre del gasto','Expense name','Nom de la dépense','Ausgabenname','খরচের নাম'))),TextField(controller:payment,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:word('Cantidad por pago','Amount per payment','Montant par paiement','Betrag pro Zahlung','প্রতি পেমেন্টের পরিমাণ'))),DropdownButtonFormField<String>(isExpanded:true,key:ValueKey('wizard-payment-$paymentFrequency'),initialValue:paymentFrequency,decoration:InputDecoration(labelText:word('¿Cada cuánto se repite este pago?','How often does this payment repeat?','À quelle fréquence ce paiement se répète-t-il ?','Wie oft wird diese Zahlung wiederholt?','এই পেমেন্ট কত ঘন ঘন হবে?')),items:[DropdownMenuItem(value:'daily',child:Text(word('Diariamente','Daily','Chaque jour','Täglich','প্রতিদিন'))),DropdownMenuItem(value:'weekly',child:Text(word('Semanalmente','Weekly','Chaque semaine','Wöchentlich','প্রতি সপ্তাহে'))),DropdownMenuItem(value:'biweekly',child:Text(word('Cada 2 semanas','Every 2 weeks','Toutes les 2 semaines','Alle 2 Wochen','প্রতি ২ সপ্তাহে'))),DropdownMenuItem(value:'monthly',child:Text(word('Mensualmente','Monthly','Chaque mois','Monatlich','প্রতি মাসে'))),DropdownMenuItem(value:'two_months',child:Text(word('Cada 2 meses','Every 2 months','Tous les 2 mois','Alle 2 Monate','প্রতি ২ মাসে'))),DropdownMenuItem(value:'three_months',child:Text(word('Cada 3 meses','Every 3 months','Tous les 3 mois','Alle 3 Monate','প্রতি ৩ মাসে')))],onChanged:(v)=>setState(()=>paymentFrequency=v??'monthly')),
     if(paymentFrequency=='daily') Text(word('Comienza hoy y se repite todos los días','Starts today and repeats daily','Commence aujourd’hui et se répète chaque jour','Beginnt heute und wiederholt sich täglich','আজ থেকে প্রতিদিন পুনরাবৃত্তি হবে'))
     else ListTile(title:Text(word('Fecha del primer pago','First payment date','Date du premier paiement','Datum der ersten Zahlung','প্রথম পেমেন্টের তারিখ')),subtitle:Text('${firstBillDate.year}-${firstBillDate.month.toString().padLeft(2,'0')}-${firstBillDate.day.toString().padLeft(2,'0')}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:firstBillDate,firstDate:DateTime(2020),lastDate:DateTime(2100));if(d!=null)setState((){firstBillDate=d;paymentDay=d.day;});}),const SizedBox(height:8),TextButton.icon(onPressed:(){final n=parse(payment.text);if(name.text.trim().isEmpty||n==null||n<=0)return;setState((){bills.add({'name':name.text.trim(),'amount':n,'active':true,'day':paymentDay,'frequency':paymentFrequency,'start_date':paymentFrequency=='daily'?wizardFirstRecurringDate(paymentDay,'daily'):'${firstBillDate.year}-${firstBillDate.month.toString().padLeft(2,'0')}-${firstBillDate.day.toString().padLeft(2,'0')}'});name.clear();payment.clear();paymentDay=DateTime.now().day;paymentFrequency='monthly';});},icon:const Icon(Icons.add),label:Text(word('Agregar pago','Add payment','Ajouter','Hinzufügen','যোগ করুন'))),...bills.map((b)=>ListTile(title:Text('${b['name']}'),trailing:Text('${b['amount']}')))],
