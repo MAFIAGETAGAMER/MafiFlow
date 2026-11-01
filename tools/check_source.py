@@ -35,6 +35,14 @@ for path in (root / 'test').glob('*_test.dart'):
 assert len(list((root / 'test').glob('*_test.dart'))) == 7
 workflow = (root / '.github/workflows/microsoft-store.yml').read_text(encoding='utf-8')
 assert workflow.index('flutter test') < workflow.index('flutter build windows --release') < workflow.index('& ./tools/Empaquetar-MSIX.ps1')
+# Refuse mixed release workflows before spending time compiling.
+for candidate in (root / '.github/workflows').iterdir():
+    if candidate.suffix not in {'.yml', '.yaml'}:
+        continue
+    content = candidate.read_text(encoding='utf-8')
+    for stale in ['1.5.11.0', '$msixArgs', 'msix:create']:
+        assert stale not in content, f'Workflow antiguo o mezclado: {candidate.name} contiene {stale}. Sustituye ese workflow por el de COMPLETO R3.'
+assert 'name: MafiFlow Store 1.5.12 - COMPLETO R3' in workflow
 packaging = (root / 'tools/Empaquetar-MSIX.ps1').read_text(encoding='utf-8')
 for marker in ["'--build-windows', 'false'", "'--version', $release.MsixVersion",
                "'--identity-name', 'Mafistudio.MafiFlow'",
