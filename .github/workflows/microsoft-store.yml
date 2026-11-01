@@ -1,4 +1,4 @@
-name: MafiFlow - Microsoft Store MSIX CORREGIDO
+name: MafiFlow PC - MSIX 1.5.12 RECONSTRUIDO
 
 on:
   workflow_dispatch:
@@ -8,7 +8,8 @@ permissions:
 
 jobs:
   build-msix:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 45
     defaults:
       run:
         shell: pwsh
@@ -16,9 +17,21 @@ jobs:
       - name: Descargar proyecto
         uses: actions/checkout@v4
 
+      - name: Comprobar fuentes, identidad y recursos
+        run: python tools/check_source.py
+
+      - name: Mostrar version y probar comprobacion de identidad
+        run: |
+          $release = & ./tools/Leer-Version.ps1
+          Write-Host "Commit $env:GITHUB_SHA; app $($release.AppVersion); MSIX $($release.MsixVersion)"
+          "MSIX_VERSION=$($release.MsixVersion)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          & ./tools/Test-Version-Identidad.ps1 -FixtureRoot (Join-Path $env:RUNNER_TEMP 'mafiflow-msix-tests')
+          & ./tools/Test-Empaquetado-Version.ps1 -FixtureRoot (Join-Path $env:RUNNER_TEMP 'mafiflow-package-tests')
+
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.35.7'
           channel: stable
           cache: true
 
@@ -28,15 +41,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter clean' }
           flutter config --enable-windows-desktop
           if ($LASTEXITCODE -ne 0) { throw 'Fallo activar Windows' }
-          flutter create --platforms=windows --project-name mafiflow --org com.mafistudio .
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo generar Windows' }
+          & ./tools/Preparar-Windows.ps1
 
       - name: Instalar dependencias y herramienta MSIX
         run: |
           flutter pub get
           if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter pub get' }
-          flutter pub add --dev msix:3.18.0
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo instalar msix' }
+
+
+      - name: Validar codigo, perfiles y centro de ayuda
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter analyze' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo flutter test' }
 
       - name: Aplicar logo nativo y compilar una sola vez
         run: |
@@ -47,33 +65,48 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Fallo compilar Windows' }
           & ./tools/Verificar-Icono-Exe.ps1
 
-      - name: Generar MSIX con el mismo EXE y logo oficial
+      - name: Generar y verificar MSIX desde pubspec
         run: |
-          $msixArgs = @(
-            'run', 'msix:create',
-            '--store',
-            '--build-windows', 'false',
-            '--architecture', 'x64',
-            '--display-name', 'MafiFlow',
-            '--identity-name', 'Mafistudio.MafiFlow',
-            '--publisher', 'CN=728E4776-BB76-436A-88FF-F627802F7887',
-            '--publisher-display-name', 'Mafistudio',
-            '--version', '1.5.11.0',
-            '--logo-path', 'assets/MafiFlow-official.png',
-            '--trim-logo', 'false',
-            '--output-path', 'dist',
-            '--output-name', 'MafiFlow_Store_x64_1.5.11.0'
-          )
-          & dart @msixArgs
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo generar MSIX' }
-          & ./tools/Verificar-MSIX-Generado.ps1 -PackagePath 'dist/MafiFlow_Store_x64_1.5.11.0.msix'
+          & ./tools/Empaquetar-MSIX.ps1
+
+      - name: Guardar evidencia de compilacion
+        run: |
+          flutter --version | Set-Content dist/toolchain.txt
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo leer la version de Flutter' }
+          Copy-Item pubspec.yaml dist/pubspec.yaml
+          Copy-Item pubspec.lock dist/pubspec.lock
+          $release = & ./tools/Leer-Version.ps1
+          $package = $release.PackagePath
+          $evidence = @{
+            commit = $env:GITHUB_SHA
+            appVersion = $release.AppVersion
+            msixVersion = $release.MsixVersion
+            packageSHA256 = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash
+          }
+          $evidence | ConvertTo-Json | Set-Content dist/build-info.json
 
       - name: Guardar MSIX verificado
         uses: actions/upload-artifact@v4
         with:
-          name: MafiFlow-MicrosoftStore-MSIX-1.5.10.0-LOGO-CORRECTO
+          name: MafiFlow-MicrosoftStore-MSIX-${{ env.MSIX_VERSION }}-RECONSTRUIDO
           path: |
-            dist/MafiFlow_Store_x64_1.5.11.0.msix
+            dist/MafiFlow_Store_x64_${{ env.MSIX_VERSION }}.msix
             dist/*.verification.json
+            dist/*.identity.json
+            dist/*.manifest.xml
             dist/preview-*.png
+            dist/toolchain.txt
+            dist/pubspec.yaml
+            dist/pubspec.lock
+            dist/build-info.json
           if-no-files-found: error
+
+      - name: Guardar diagnostico si falla la verificacion
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MafiFlow-MSIX-diagnostico
+          path: |
+            dist/*.manifest.xml
+            dist/*.identity.json
+          if-no-files-found: warn
