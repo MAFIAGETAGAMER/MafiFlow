@@ -2,12 +2,11 @@
 param(
     [Parameter(Mandatory=$true)][string] $PackagePath,
     [string] $ExpectedExePath = '',
-    [string] $ExpectedVersion = ''
+    [string] $ExpectedVersion = '1.5.11.0'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-if (!$ExpectedVersion) { $ExpectedVersion = (& (Join-Path $PSScriptRoot 'Leer-Version.ps1')).MsixVersion }
 if (!$ExpectedExePath) { $ExpectedExePath = Join-Path $projectRoot 'build/windows/x64/runner/Release/MafiFlow.exe' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.Drawing
@@ -50,8 +49,10 @@ try {
         finally { $stream.Dispose(); $memory.Dispose() }
     }
     [xml] $manifest = [Text.Encoding]::UTF8.GetString((Read-Entry 'AppxManifest.xml'))
-    $manifest.Save([IO.Path]::GetFullPath($PackagePath + '.manifest.xml'))
-    & (Join-Path $PSScriptRoot 'Verificar-Identidad-MSIX.ps1') -Manifest $manifest -ExpectedVersion $ExpectedVersion -ReportPath ($PackagePath + '.identity.json')
+    if ($manifest.Package.Identity.Name -cne 'Mafistudio.MafiFlow' -or
+        $manifest.Package.Identity.Publisher -cne 'CN=728E4776-BB76-436A-88FF-F627802F7887' -or
+        $manifest.Package.Identity.Version -cne $ExpectedVersion -or
+        $manifest.Package.Properties.PublisherDisplayName -cne 'Mafistudio') { throw 'Identidad o version incorrecta' }
     $app = $manifest.Package.Applications.Application
     if ($app.Id -cne 'mafiflow') { throw 'Application Id debe seguir siendo mafiflow; conserva name: mafiflow en pubspec.yaml' }
     $exeEntry = ([string]$app.Executable).Replace('\','/')

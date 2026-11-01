@@ -1,0 +1,15 @@
+BASE ORIGINAL PC 1.5.11+27 / MSIX 1.5.11.0
+
+PRIMERO COMPROBAR ESTA BASE, SIN FUNCIONES NUEVAS
+
+Los archivos de codigo y compilacion se copian byte por byte del ZIP original Windows 1.5.11, sin corregir ni cambiar sus pruebas. No se incluyen assets, store_assets ni store_listing: conserva esas carpetas que ya estan en tu repositorio. Este ZIP es una restauracion parcial y requiere esos recursos existentes.
+
+1. Extraer y copiar lib, test, tools, pubspec.yaml y .gitignore a las mismas rutas en la raiz del repositorio PC.
+2. IMPORTANTE: el ZIP no borra archivos sobrantes de las actualizaciones fallidas. Para probar esta base, test debe contener SOLO finance_core_test.dart, profile_archive_test.dart y help_center_test.dart.
+   Si siguen presentes, retirar de esa rama estas cuatro pruebas posteriores: test/advisor_messages_test.dart, test/available_balance_test.dart, test/category_order_test.dart y test/savings_operations_test.dart. Hacerlo en una rama de prueba permite conservar el trabajo posterior.
+3. .github/workflows contiene los dos workflows ORIGINALES. Hay copias visibles identicas en GITHUB_MANUAL. Reemplazar manualmente TODO el contenido de .github/workflows/microsoft-store.yml con GITHUB_MANUAL/microsoft-store.yml, y windows.yml con su equivalente. Si el workflow MSIX activo tiene otro nombre, sustituir su contenido tambien para no ejecutar el de 1.5.12.
+4. Esta base usa pubspec 1.5.11+27, empaqueta 1.5.11.0 y verifica 1.5.11.0: todos los archivos incluidos son de esa misma entrega original.
+5. Crear una ejecucion NUEVA en Actions: MafiFlow - Microsoft Store MSIX CORREGIDO, en la rama actualizada. No volver a ejecutar un job de un commit posterior/anterior.
+6. Esto prueba la base anterior; no subir este MSIX como una actualizacion nueva a Store, porque reutiliza 1.5.11.0. Solo despues de comprobarla se agregaran las funciones nuevas y se incrementara la version.
+
+No se ha compilado este ZIP en esta entrega. Se verifico que los archivos coinciden con el original y que el ZIP esta integro. El MSIX original existe como referencia; su existencia no demuestra que una nueva ejecucion con dependencias actuales vaya a superar las pruebas.
