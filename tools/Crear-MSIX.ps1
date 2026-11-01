@@ -16,7 +16,7 @@ param(
     [string] $PublisherDisplayName = 'Mafistudio',
 
     [ValidatePattern('^[1-9][0-9]{0,4}\.[0-9]{1,5}\.[0-9]{1,5}\.0$')]
-    [string] $Version = '1.5.12.0',
+    [string] $Version = '',
 
     [string] $OutputPath = '',
 
@@ -39,6 +39,7 @@ if ($IdentityName -match '(EJEMPLO|PLACEHOLDER|YOUR_|IDENTITY_NAME)' -or
     throw 'Usa los valores REALES de Identidad de producto en Partner Center, no ejemplos.'
 }
 
+if (!$Version) { $Version = (& (Join-Path $PSScriptRoot 'Leer-Version.ps1')).MsixVersion }
 $parts = $Version.Split('.')
 foreach ($part in $parts) {
     if ([int]$part -gt 65535) { throw 'Cada segmento de la version debe ser <= 65535.' }

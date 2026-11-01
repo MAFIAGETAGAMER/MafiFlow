@@ -41,8 +41,8 @@ for candidate in (root / '.github/workflows').iterdir():
         continue
     content = candidate.read_text(encoding='utf-8')
     for stale in ['1.5.11.0', '$msixArgs', 'msix:create']:
-        assert stale not in content, f'Workflow antiguo o mezclado: {candidate.name} contiene {stale}. Sustituye ese workflow por el de COMPLETO R3.'
-assert 'name: MafiFlow Store 1.5.12 - COMPLETO R3' in workflow
+        assert stale not in content, f'Workflow antiguo o mezclado: {candidate.name} contiene {stale}. Sustituye ese workflow por el de RECONSTRUIDO.'
+assert 'name: MafiFlow PC - MSIX 1.5.12 RECONSTRUIDO' in workflow
 packaging = (root / 'tools/Empaquetar-MSIX.ps1').read_text(encoding='utf-8')
 for marker in ["'--build-windows', 'false'", "'--version', $release.MsixVersion",
                "'--identity-name', 'Mafistudio.MafiFlow'",

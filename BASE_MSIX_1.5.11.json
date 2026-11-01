@@ -1,0 +1,16 @@
+{
+  "source_zip": "MafiFlow-MicrosoftStore-MSIX-1.5.10.0-LOGO-CORRECTO (1).zip",
+  "package": "MafiFlow_Store_x64_1.5.11.0.msix",
+  "package_sha256": "0780ea62d5fb8e09767c242a3a16c3bec14423cac24cff82ac9c231129cc6d77",
+  "identity": {
+    "Name": "Mafistudio.MafiFlow",
+    "Version": "1.5.11.0",
+    "Publisher": "CN=728E4776-BB76-436A-88FF-F627802F7887",
+    "ProcessorArchitecture": "x64"
+  },
+  "application": {
+    "Id": "mafiflow",
+    "Executable": "MafiFlow.exe",
+    "EntryPoint": "Windows.FullTrustApplication"
+  }
+}

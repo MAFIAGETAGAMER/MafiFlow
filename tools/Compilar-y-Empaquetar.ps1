@@ -13,9 +13,13 @@ function Run-Flutter([string[]] $argsList) {
     & flutter @argsList
     if ($LASTEXITCODE -ne 0) { throw "Flutter fallo: flutter $($argsList -join ' ')" }
 }
+if ($IdentityName -cne 'Mafistudio.MafiFlow' -or $Publisher -cne 'CN=728E4776-BB76-436A-88FF-F627802F7887' -or $PublisherDisplayName -cne 'Mafistudio') {
+    throw 'Esta actualizacion debe conservar la identidad de MafiFlow en Store.'
+}
 Push-Location $projectRoot
 try {
-    if ([version]'1.5.12.0' -le $PublishedVersion) { throw 'Incrementa la version: debe superar la publicada en Partner Center.' }
+    $release = & (Join-Path $PSScriptRoot 'Leer-Version.ps1')
+    if ([version]$release.MsixVersion -le $PublishedVersion) { throw 'Incrementa la version: debe superar la publicada en Partner Center.' }
     Run-Flutter -argsList @('clean')
     Run-Flutter -argsList @('config', '--enable-windows-desktop')
     & (Join-Path $PSScriptRoot 'Preparar-Windows.ps1')
@@ -26,7 +30,7 @@ try {
     & (Join-Path $PSScriptRoot 'Branding-Windows.ps1')
     Run-Flutter -argsList @('build', 'windows', '--release')
     & (Join-Path $PSScriptRoot 'Verificar-Icono-Exe.ps1')
-    & (Join-Path $PSScriptRoot 'Crear-MSIX.ps1') -IdentityName $IdentityName -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version '1.5.12.0' -Overwrite
+    & (Join-Path $PSScriptRoot 'Empaquetar-MSIX.ps1')
     Write-Host 'Compilacion y MSIX para Partner Center generados.' -ForegroundColor Green
 }
 finally { Pop-Location }
